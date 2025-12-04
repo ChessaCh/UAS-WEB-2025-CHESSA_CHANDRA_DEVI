@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import search_page, flight_results, booking_page, confirm_booking, price_offer, locations_lookup, login_view, register_view, logout_view, my_bookings, confirm_payment, receipt_api
+from .views import search_page, flight_results, booking_page, confirm_booking, price_offer, locations_lookup, login_view, register_view, logout_view, my_bookings, confirm_payment, receipt_api, availability_api
 
 urlpatterns = [
     path('', search_page, name='search_flights'),
@@ -14,4 +14,5 @@ urlpatterns = [
     path('bookings', my_bookings, name='my_bookings'),
     path('payments/confirm', confirm_payment, name='confirm_payment'),
     path('api/receipt', receipt_api, name='receipt_api'),
+    path('api/availability', availability_api, name='availability_api'),
 ]

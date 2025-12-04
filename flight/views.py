@@ -913,6 +913,175 @@ def locations_lookup(request):
     return JsonResponse({"items": items})
 
 
+@login_required(login_url='login')
+def availability_api(request):
+    origin = (request.GET.get("origin") or "").strip().upper()
+    destination = (request.GET.get("destination") or "").strip().upper()
+    departure_date = (request.GET.get("departure_date") or "").strip()
+    return_date = (request.GET.get("return_date") or "").strip()
+    adults = (request.GET.get("adults") or "1").strip()
+    origin_label = (request.GET.get("origin_label") or "").strip()
+    destination_label = (request.GET.get("destination_label") or "").strip()
+
+    if not (origin and destination and departure_date):
+        return HttpResponseBadRequest("Parameter origin, destination, dan departure_date wajib disertakan")
+
+    def _city_from_label(lbl, code):
+        try:
+            if lbl and "(" in lbl:
+                return lbl.split("(", 1)[0].strip()
+        except Exception:
+            pass
+        return code
+
+    params = {
+        "originLocationCode": origin,
+        "destinationLocationCode": destination,
+        "departureDate": departure_date,
+        "adults": adults,
+        "max": 30,
+    }
+    if return_date:
+        params["returnDate"] = return_date
+
+    def _seats_by_class(offer):
+        seats = None
+        try:
+            seats = int(offer.get("numberOfBookableSeats"))
+        except Exception:
+            seats = None
+        cabin = None
+        try:
+            tp = (offer.get("travelerPricings") or [])
+            if tp:
+                fdbs = (tp[0].get("fareDetailsBySegment") or [])
+                if fdbs:
+                    cabin = (fdbs[0].get("cabin") or "").strip().upper()
+        except Exception:
+            pass
+        out = {"economy": None, "business": None, "first": None}
+        if seats and seats > 0:
+            if cabin == "ECONOMY" or cabin == "PREMIUM_ECONOMY":
+                out["economy"] = seats
+            elif cabin == "BUSINESS":
+                out["business"] = seats
+            elif cabin == "FIRST":
+                out["first"] = seats
+        return out
+
+    def _first_departure_time(offer):
+        try:
+            itin = (offer.get("itineraries") or [{}])[0]
+            seg = (itin.get("segments") or [{}])[0]
+            return seg.get("departure", {}).get("at") or ""
+        except Exception:
+            return ""
+
+    url_v2 = "https://test.api.amadeus.com/v2/shopping/flight-offers?" + urlencode(params)
+    data = None
+    try:
+        data = _amadeus_request_json(request, url_v2, method="GET", body=None, timeout=20)
+    except HTTPError as e:
+        fallback_needed = False
+        try:
+            j = json.loads(str(e))
+            errs = j.get("errors") or []
+            for err in errs:
+                t = str(err.get("title") or "").upper()
+                c = str(err.get("code") or "")
+                s = str(err.get("status") or "")
+                if ("SYSTEM ERROR HAS OCCURRED" in t) or (c == "141") or (s == "500"):
+                    fallback_needed = True
+                    break
+        except Exception:
+            pass
+        if fallback_needed:
+            params_v1 = {
+                "origin": origin,
+                "destination": destination,
+                "departureDate": departure_date,
+                "adults": adults,
+                "max": "30",
+                "nonStop": "false",
+            }
+            if return_date:
+                params_v1["returnDate"] = return_date
+            url_v1 = "https://test.api.amadeus.com/v1/shopping/flight-offers?" + urlencode(params_v1)
+            try:
+                data = _amadeus_request_json(request, url_v1, method="GET", body=None, timeout=20)
+            except Exception as e2:
+                return JsonResponse({"error": f"HTTP {getattr(e, 'code', 400)}: {str(e)}"}, status=400)
+        else:
+            return JsonResponse({"error": f"HTTP {getattr(e, 'code', 400)}: {str(e)}"}, status=400)
+    except URLError as e:
+        return JsonResponse({"error": f"Network error: {e.reason}"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+    offers = list(data.get("data") or [])
+    cleaned = []
+    for offer in offers:
+        flags = _analyze_offer(offer) or {}
+        seats = flags.get("bookableSeats")
+        mismatch = flags.get("validatingMismatch")
+        if seats is not None and seats <= 0:
+            continue
+        if mismatch:
+            continue
+        cleaned.append(offer)
+
+    cleaned.sort(key=_first_departure_time)
+
+    items = []
+    for offer in cleaned:
+        try:
+            itineraries = (offer.get("itineraries") or [])
+            first_itin = itineraries[0] if itineraries else {}
+            segments = (first_itin.get("segments") or [])
+            dep_seg = segments[0] if segments else {}
+            arr_seg = segments[-1] if segments else {}
+            origin_code = dep_seg.get("departure", {}).get("iataCode") or origin
+            dest_code = arr_seg.get("arrival", {}).get("iataCode") or destination
+            origin_city = _city_from_label(origin_label, origin_code)
+            dest_city = _city_from_label(destination_label, dest_code)
+
+            seg_details = []
+            for seg in segments:
+                seg_details.append({
+                    "carrier": seg.get("carrierCode"),
+                    "flight_number": seg.get("number"),
+                    "departure_time": (seg.get("departure") or {}).get("at"),
+                    "arrival_time": (seg.get("arrival") or {}).get("at"),
+                    "origin": (seg.get("departure") or {}).get("iataCode"),
+                    "destination": (seg.get("arrival") or {}).get("iataCode"),
+                })
+
+            price = offer.get("price") or {}
+            base = price.get("base")
+            currency = price.get("currency")
+            fees_list = price.get("fees") or []
+            fees_total = None
+            try:
+                fees_total = str(sum(Decimal(str(x.get("amount"))) for x in fees_list)) if fees_list else "0"
+            except Exception:
+                fees_total = None
+
+            seats_class = _seats_by_class(offer)
+
+            items.append({
+                "origin_airport": {"city": origin_city, "code": origin_code},
+                "destination_airport": {"city": dest_city, "code": dest_code},
+                "travel_dates": {"departure": departure_date, "return": return_date or None},
+                "available_seats": seats_class,
+                "flight_details": seg_details,
+                "pricing": {"base_fare": base, "fees_total": fees_total, "currency": currency},
+            })
+        except Exception:
+            continue
+
+    return JsonResponse({"count": len(items), "items": items})
+
+
 # Auth views
 def register_view(request):
     if request.method == "GET":
