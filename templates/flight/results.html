@@ -13,6 +13,9 @@
 </head>
 <body>
   <h1>Flight Results</h1>
+  {% if origin_label or destination_label %}
+    <div><strong>Pencarian:</strong> {{ origin_label|default:origin }} → {{ destination_label|default:destination }}</div>
+  {% endif %}
 
   {% if error %}
     <div class="error">{{ error }}</div>

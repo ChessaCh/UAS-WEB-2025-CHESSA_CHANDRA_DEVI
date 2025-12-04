@@ -13,6 +13,9 @@
 </head>
 <body>
   <h1>Flight Booking</h1>
+  {% if origin_label or destination_label %}
+    <div><strong>Penerbangan:</strong> {{ origin_label }} → {{ destination_label }}</div>
+  {% endif %}
 
   {% if offer %}
     <div class="card">

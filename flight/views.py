@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from django.http import HttpResponseBadRequest
+from django.http import HttpResponseBadRequest, JsonResponse
 from django.conf import settings
 import json
 from urllib.parse import urlencode
@@ -20,12 +20,16 @@ def flight_results(request):
     departure_date = request.GET.get("departure_date")
     return_date = request.GET.get("return_date")
     adults = request.GET.get("adults", "1")
+    origin_label = request.GET.get("origin_label")
+    destination_label = request.GET.get("destination_label")
 
     context = {
         "results": None,
         "error": None,
         "origin": origin or "",
         "destination": destination or "",
+        "origin_label": origin_label or "",
+        "destination_label": destination_label or "",
         "departure_date": departure_date or "",
         "return_date": return_date or "",
         "adults": adults,
@@ -35,6 +39,8 @@ def flight_results(request):
         return redirect("search_flights")
 
     token = getattr(request, "amadeus_token", None) or settings.AMADEUS_ACCESS_TOKEN or get_access_token()
+    if not token:
+        token = get_access_token(force_refresh=True)
     if not token:
         context["error"] = "Token akses Amadeus tidak tersedia. Set AMADEUS_ACCESS_TOKEN atau AMADEUS_CLIENT_ID/SECRET."
         return render(request, "flight/results.html", context)
@@ -70,6 +76,8 @@ def flight_results(request):
                     is_round_trip=bool(return_date),
                 )
                 request.session["search_log_id"] = sl.id
+                request.session["origin_label"] = origin_label
+                request.session["destination_label"] = destination_label
             except Exception:
                 pass
     except HTTPError as e:
@@ -118,6 +126,8 @@ def price_offer(request):
         return HttpResponseBadRequest("Metode harus POST")
 
     token = getattr(request, "amadeus_token", None) or settings.AMADEUS_ACCESS_TOKEN or get_access_token()
+    if not token:
+        token = get_access_token(force_refresh=True)
     if not token:
         return HttpResponseBadRequest("Token akses Amadeus tidak tersedia")
 
@@ -230,7 +240,13 @@ def booking_page(request):
                 request.session["flight_temp_id"] = temp_id
             except Exception:
                 temp_id = None
-        return render(request, "flight/booking.html", {"offer": offer, "idx": idx, "selection_id": temp_id})
+        return render(request, "flight/booking.html", {
+            "offer": offer,
+            "idx": idx,
+            "selection_id": temp_id,
+            "origin_label": request.session.get("origin_label"),
+            "destination_label": request.session.get("destination_label"),
+        })
 
     if request.method == "POST":
         return redirect("confirm_booking")
@@ -354,3 +370,67 @@ def confirm_booking(request):
 
     context = {"offer": offer, "priced": priced, "name": name, "passport": passport, "nationality": nationality, "error": error}
     return render(request, "flight/confirm.html", context)
+
+
+def locations_lookup(request):
+    q = request.GET.get("q", "").strip()
+    defaults = [
+        {"code": "CGK", "name": "Jakarta", "label": "Jakarta (CGK)"},
+        {"code": "DPS", "name": "Denpasar", "label": "Denpasar (DPS)"},
+        {"code": "SUB", "name": "Surabaya", "label": "Surabaya (SUB)"},
+        {"code": "JOG", "name": "Yogyakarta", "label": "Yogyakarta (JOG)"},
+        {"code": "KNO", "name": "Medan", "label": "Medan (KNO)"},
+        {"code": "BDO", "name": "Bandung", "label": "Bandung (BDO)"},
+        {"code": "SIN", "name": "Singapore", "label": "Singapore (SIN)"},
+        {"code": "KUL", "name": "Kuala Lumpur", "label": "Kuala Lumpur (KUL)"},
+        {"code": "BKK", "name": "Bangkok", "label": "Bangkok (BKK)"},
+    ]
+    if not q:
+        return JsonResponse({"items": defaults})
+    token = getattr(request, "amadeus_token", None) or settings.AMADEUS_ACCESS_TOKEN or get_access_token()
+    if not token:
+        token = get_access_token(force_refresh=True)
+    if not token:
+        return JsonResponse({"items": []})
+    params = {
+        "subType": "AIRPORT,CITY",
+        "keyword": q,
+        "page[limit]": 7,
+    }
+    url = "https://test.api.amadeus.com/v1/reference-data/locations?" + urlencode(params)
+    req = Request(url)
+    req.add_header("Authorization", f"Bearer {token}")
+    req.add_header("Content-Type", "application/json")
+    items = []
+    def _parse(data):
+        for entry in data.get("data", []):
+            code = entry.get("iataCode")
+            name = entry.get("name") or (entry.get("address") or {}).get("cityName") or ""
+            label = f"{name} ({code})" if code and name else (code or name or "")
+            items.append({"code": code, "name": name, "label": label})
+    try:
+        with urlopen(req, timeout=15) as resp:
+            raw = resp.read().decode("utf-8")
+            data = json.loads(raw)
+            _parse(data)
+    except HTTPError as e:
+        if e.code == 401:
+            token = get_access_token(force_refresh=True)
+            if token:
+                req = Request(url)
+                req.add_header("Authorization", f"Bearer {token}")
+                req.add_header("Content-Type", "application/json")
+                try:
+                    with urlopen(req, timeout=15) as resp:
+                        raw = resp.read().decode("utf-8")
+                        data = json.loads(raw)
+                        _parse(data)
+                except Exception:
+                    pass
+        else:
+            pass
+    except Exception:
+        pass
+    if not items:
+        items = defaults
+    return JsonResponse({"items": items})

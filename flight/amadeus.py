@@ -1,4 +1,5 @@
 from django.conf import settings
+import os
 import time
 import json
 from urllib.parse import urlencode
@@ -12,13 +13,27 @@ _EXPIRES_AT = 0
 def get_access_token(force_refresh=False):
     global _TOKEN, _EXPIRES_AT
     now = int(time.time())
-    if not force_refresh and settings.AMADEUS_ACCESS_TOKEN:
-        return settings.AMADEUS_ACCESS_TOKEN
+    if not force_refresh:
+        if getattr(settings, "AMADEUS_ACCESS_TOKEN", None):
+            return settings.AMADEUS_ACCESS_TOKEN
+        env_token = os.getenv("AMADEUS_ACCESS_TOKEN")
+        if env_token:
+            return env_token
     if not force_refresh and _TOKEN and now < _EXPIRES_AT:
         return _TOKEN
 
-    cid = getattr(settings, "AMADEUS_CLIENT_ID", None) or getattr(settings, "AMADEUS_API_KEY", None)
-    csecret = getattr(settings, "AMADEUS_CLIENT_SECRET", None) or getattr(settings, "AMADEUS_API_SECRET", None)
+    cid = (
+        getattr(settings, "AMADEUS_CLIENT_ID", None)
+        or getattr(settings, "AMADEUS_API_KEY", None)
+        or os.getenv("AMADEUS_CLIENT_ID")
+        or os.getenv("AMADEUS_API_KEY")
+    )
+    csecret = (
+        getattr(settings, "AMADEUS_CLIENT_SECRET", None)
+        or getattr(settings, "AMADEUS_API_SECRET", None)
+        or os.getenv("AMADEUS_CLIENT_SECRET")
+        or os.getenv("AMADEUS_API_SECRET")
+    )
     if not cid or not csecret:
         return None
 

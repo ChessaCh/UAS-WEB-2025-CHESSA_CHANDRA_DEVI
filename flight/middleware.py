@@ -11,6 +11,8 @@ class AmadeusTokenMiddleware:
         if override:
             request.session["amadeus_token"] = override
         token = request.session.get("amadeus_token") or settings.AMADEUS_ACCESS_TOKEN or get_access_token()
+        if not token:
+            token = get_access_token(force_refresh=True)
         if token:
             request.amadeus_token = token
         response = self.get_response(request)

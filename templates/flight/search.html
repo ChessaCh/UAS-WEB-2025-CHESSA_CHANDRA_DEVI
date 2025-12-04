@@ -12,6 +12,8 @@
         .error { color: #c00; margin-bottom: 12px; }
         .card { border: 1px solid #ddd; padding: 12px; margin-bottom: 8px; border-radius: 6px; }
         .meta { color: #555; font-size: 12px; }
+        #origin_suggestions, #destination_suggestions { max-height: 220px; overflow:auto; width: 100%; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .suggestion-empty { padding: 6px; color: #666; background: #fff; border: 1px solid #ddd; }
     </style>
 </head>
 <body>
@@ -22,13 +24,19 @@
     {% endif %}
 
     <form method="get" action="{% url 'flight_results' %}">
-        <div>
-            <label for="origin">Origin (IATA)</label>
-            <input type="text" id="origin" name="origin" value="{{ origin }}" placeholder="CGK" required />
+        <div style="position:relative">
+            <label for="origin_display">Origin</label>
+            <input type="text" id="origin_display" value="" placeholder="Ketik kota, misal: Jakarta" autocomplete="off" />
+            <input type="hidden" id="origin" name="origin" value="{{ origin }}" />
+            <input type="hidden" id="origin_label" name="origin_label" value="{{ origin_label }}" />
+            <div id="origin_suggestions"></div>
         </div>
-        <div>
-            <label for="destination">Destination (IATA)</label>
-            <input type="text" id="destination" name="destination" value="{{ destination }}" placeholder="DPS" required />
+        <div style="position:relative">
+            <label for="destination_display">Destination</label>
+            <input type="text" id="destination_display" value="" placeholder="Ketik kota, misal: Denpasar" autocomplete="off" />
+            <input type="hidden" id="destination" name="destination" value="{{ destination }}" />
+            <input type="hidden" id="destination_label" name="destination_label" value="{{ destination_label }}" />
+            <div id="destination_suggestions"></div>
         </div>
         <div>
             <label for="departure_date">Tanggal Berangkat</label>
@@ -51,6 +59,86 @@
     </form>
 
     <script>
+      function attachAutocomplete(displayId, hiddenId, labelId, sugId){
+        const disp = document.getElementById(displayId);
+        const hid = document.getElementById(hiddenId);
+        const lbl = document.getElementById(labelId);
+        const sug = document.getElementById(sugId);
+        let t;
+        function render(items){
+          sug.innerHTML = '';
+          sug.style.position = 'absolute';
+          sug.style.background = '#fff';
+          sug.style.border = '1px solid #ddd';
+          sug.style.zIndex = 10;
+          items.forEach(it => {
+            const div = document.createElement('div');
+            div.textContent = it.label;
+            div.style.padding = '6px';
+            div.style.cursor = 'pointer';
+            div.addEventListener('mousedown', () => {
+              disp.value = it.label;
+              hid.value = it.code || disp.value;
+              lbl.value = it.label;
+              sug.innerHTML = '';
+            });
+            sug.appendChild(div);
+          });
+          if(items.length === 0){
+            const empty = document.createElement('div');
+            empty.className = 'suggestion-empty';
+            empty.textContent = 'Tidak ada saran';
+            sug.appendChild(empty);
+          }
+        }
+        disp.addEventListener('input', () => {
+          const q = disp.value.trim();
+          hid.value = '';
+          lbl.value = '';
+          clearTimeout(t);
+          if(!q){
+            t = setTimeout(async () => {
+              try{
+                const r = await fetch('/api/locations?q=');
+                let items = [];
+                if(r.ok){ const j = await r.json(); items = j.items || []; }
+                render(items);
+              }catch(e){ render([]); }
+            }, 100);
+            return;
+          }
+          t = setTimeout(async () => {
+            try{
+              const r = await fetch('/api/locations?q=' + encodeURIComponent(q));
+              let items = [];
+              if(r.ok){
+                const j = await r.json();
+                items = j.items || [];
+              }
+              render(items);
+            }catch(e){
+              console.warn('Autocomplete error', e);
+              render([]);
+            }
+          }, 250);
+        });
+        disp.addEventListener('focus', () => {
+          if(!disp.value.trim()){
+            fetch('/api/locations?q=').then(r => r.json()).then(j => render(j.items || [])).catch(() => render([]));
+          }
+        });
+        disp.addEventListener('blur', () => { setTimeout(() => { sug.innerHTML=''; }, 200); });
+      }
+      attachAutocomplete('origin_display','origin','origin_label','origin_suggestions');
+      attachAutocomplete('destination_display','destination','destination_label','destination_suggestions');
+      document.querySelector('form').addEventListener('submit', (e) => {
+        const oc = document.getElementById('origin').value.trim();
+        const dc = document.getElementById('destination').value.trim();
+        if(!oc || !dc){
+          e.preventDefault();
+          alert('Silakan pilih kota dari dropdown agar kode IATA terisi.');
+        }
+      });
       const cb = document.getElementById('is_roundtrip');
       const wrap = document.getElementById('return_date_wrap');
       cb.addEventListener('change', () => { wrap.style.display = cb.checked ? 'block' : 'none'; });
