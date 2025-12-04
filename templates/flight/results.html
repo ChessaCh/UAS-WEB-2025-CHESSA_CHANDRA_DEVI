@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flight Results</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 24px; }
+    .error { color: #c00; }
+    .card { border: 1px solid #ddd; padding: 12px; margin-bottom: 8px; border-radius: 6px; }
+    .meta { color: #555; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h1>Flight Results</h1>
+
+  {% if error %}
+    <div class="error">{{ error }}</div>
+  {% endif %}
+
+  {% if results and results.data %}
+    {% for offer in results.data %}
+      <div class="card">
+        <div class="meta">Offer ID: {{ offer.id }}</div>
+        {% if offer.itineraries %}
+          {% for itin in offer.itineraries %}
+            <div>
+              {% for segment in itin.segments %}
+                <div>
+                  {{ segment.departure.iataCode }} → {{ segment.arrival.iataCode }}
+                  ({{ segment.carrierCode }} {{ segment.number }})
+                  {{ segment.departure.at }} - {{ segment.arrival.at }}
+                </div>
+              {% endfor %}
+            </div>
+          {% endfor %}
+        {% endif %}
+        {% if offer.price %}
+          <div><strong>Harga:</strong> {{ offer.price.total }} {{ offer.price.currency }}</div>
+        {% endif %}
+        <form method="get" action="{% url 'flight_booking' %}">
+          <input type="hidden" name="idx" value="{{ forloop.counter0 }}" />
+          <button type="submit">Booking</button>
+        </form>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div>Tidak ada hasil ditemukan.</div>
+  {% endif %}
+
+  <p>
+    <a href="{% url 'search_flights' %}">Kembali ke Search Flight</a>
+  </p>
+</body>
+</html>
