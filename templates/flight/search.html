@@ -1,148 +1,295 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pencarian Penerbangan</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 24px; }
-        form { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
-        label { font-weight: 600; }
-        input, button { padding: 8px; }
-        .error { color: #c00; margin-bottom: 12px; }
-        .card { border: 1px solid #ddd; padding: 12px; margin-bottom: 8px; border-radius: 6px; }
-        .meta { color: #555; font-size: 12px; }
-        #origin_suggestions, #destination_suggestions { max-height: 220px; overflow:auto; width: 100%; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .suggestion-empty { padding: 6px; color: #666; background: #fff; border: 1px solid #ddd; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Pencarian Penerbangan</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <style>
+    :root {
+      --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px;
+      --gutter: var(--space-4);
+      --radius-1: 8px; --radius-2: 12px; --radius-3: 16px; --radius-4: 24px;
+      --shadow-1: 0 2px 8px rgba(0,0,0,0.10); --shadow-2: 0 6px 20px rgba(0,0,0,0.12);
+      --surface: #ffffff; --surface-muted: #f3f4f6; --text: #111827; --muted: #6b7280; --border: #e5e7eb;
+      --primary: #2563eb; --primary-hover: #1d4ed8; --accent: #0ea5e9; --danger: #dc2626;
+      --hero-overlay: linear-gradient(180deg, rgba(17,24,39,0.60) 0%, rgba(17,24,39,0.35) 60%, rgba(17,24,39,0.25) 100%);
+      --bp-sm: 480px; --bp-md: 768px; --bp-lg: 1024px; --bp-xl: 1280px;
+      --container-max: 1200px;
+    }
+
+    * { box-sizing: border-box; }
+    html { color-scheme: light; }
+    body { margin: 0; font-family: 'Poppins', Arial, sans-serif; color: var(--text); background: #0b1220; }
+    a { color: var(--primary); text-decoration: none; }
+    a:hover { color: var(--primary-hover); }
+    img { max-width: 100%; display: block; }
+    button { font-family: inherit; }
+    :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+    .container { width: min(var(--container-max), 100% - var(--space-6)); margin-inline: auto; padding-inline: var(--space-4); }
+
+    header.site-header { position: relative; z-index: 2; padding: var(--space-3) 0; }
+    .header-bar { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: var(--space-3); }
+    .nav-pill { display: inline-flex; align-items: center; gap: var(--space-3); background: var(--surface); border-radius: 999px; padding: var(--space-2) var(--space-3); box-shadow: var(--shadow-1); }
+    .nav-link { color: var(--text); font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
+    .divider { width: 1px; height: 20px; background: var(--border); }
+    .actions { display: inline-flex; align-items: center; gap: var(--space-2); }
+    .btn { display: inline-flex; align-items: center; justify-content: center; height: 40px; padding: 0 var(--space-4); border-radius: var(--radius-2); font-weight: 600; border: 1px solid transparent; color: var(--text); background: transparent; transition: background-color .2s ease, color .2s ease, border-color .2s ease; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+
+    .hero { position: relative; min-height: 100vh; display: grid; align-content: start; background-image: var(--hero-overlay), url("{% static 'img/bg_search.png' %}"); background-size: cover; background-position: center; }
+    .hero .container { padding-top: var(--space-8); padding-bottom: var(--space-8); }
+
+    .search-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-4); box-shadow: var(--shadow-2); width: min(1000px, 100%); margin-inline: auto; padding: var(--space-5); margin-top: var(--space-6); }
+    .error { color: var(--danger); margin-bottom: var(--space-3); }
+
+    .controls { display: grid; grid-template-columns: 1fr; gap: var(--space-3); color: #374151; }
+    .sb-select { height: 44px; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-2); background: var(--surface); font-size: 16px; }
+
+    .form-grid { display: grid; grid-template-columns: 1fr; gap: var(--gutter); align-items: start; margin-top: var(--space-4); }
+    .field { display: grid; gap: 6px; }
+    .label { font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+    .input-wrap { position: relative; }
+    .input { width: 100%; height: 44px; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-2); font-size: 16px; background: var(--surface); color: var(--text); }
+    .date-input { width: 100%; height: 44px; padding: 10px 14px 10px 38px; border: 1px solid var(--border); border-radius: var(--radius-2); font-size: 16px; background: var(--surface); color: var(--text); }
+    .input-icon { position: relative; }
+    .input-icon i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 18px; }
+    .swap { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface-muted); cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; justify-self: center; align-self: end; box-shadow: 0 2px 6px rgba(0,0,0,0.08); transition: transform .2s ease, background-color .2s ease; }
+    .swap:hover { transform: translateY(-1px); }
+    .action { display: flex; justify-content: flex-end; align-items: center; }
+    .action .sb-button { height: 44px; padding: 0 22px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius-3); font-weight: 600; cursor: pointer; min-width: 180px; display: inline-flex; align-items: center; justify-content: center; transition: background-color .2s ease; }
+    .action .sb-button:hover { background: var(--primary-hover); }
+
+    .suggestions { position: absolute; top: 100%; left: 0; right: 0; max-height: 220px; overflow: auto; width: 100%; box-shadow: var(--shadow-1); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-2); z-index: 20; }
+    .suggestion-item { padding: 8px 10px; cursor: pointer; }
+    .suggestion-item:hover { background: #eef2ff; }
+    .suggestion-empty { padding: 8px; color: #666; background: #fff; }
+
+    @media (min-width: 768px) {
+      .controls { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @media (min-width: 1024px) {
+      .form-grid { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+      .field-origin { grid-column: span 4; }
+      .field-swap { grid-column: span 1; }
+      .field-destination { grid-column: span 4; }
+      .field-departure { grid-column: span 3; }
+      .field-return { grid-column: span 3; }
+      .action { grid-column: 10 / -1; }
+      .search-card { margin-top: var(--space-7); }
+    }
+    @media (min-width: 1280px) {
+      .hero { min-height: 100vh; }
+    }
+
+    @supports (height: 100svh) {
+      .hero { min-height: 100svh; }
+    }
+
+    @media (orientation: landscape) and (max-width: 768px) {
+      .hero { min-height: 70vh; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; animation: none !important; }
+    }
+  </style>
 </head>
 <body>
-    <h1>Booking Pesawat (Realtime Amadeus)</h1>
+  {% comment %} Include extracted header component {% endcomment %}
+  {% include 'flight/header.html' %}
 
-    {% if error %}
-      <div class="error">{{ error }}</div>
-    {% endif %}
+  <section class="hero" role="region" aria-label="Hero">
+    <div class="container">
+      <div class="search-card" role="search">
+        {% if error %}
+          <div class="error" role="alert">{{ error }}</div>
+        {% endif %}
+        <form method="get" action="{% url 'flight_results' %}">
+          <div class="controls" aria-label="Search options">
+            <div>
+              <label for="trip_type" class="label">Jenis Perjalanan</label>
+              <select id="trip_type" class="sb-select" aria-label="Pilih jenis perjalanan">
+                <option value="round">Pulang Pergi</option>
+                <option value="oneway">Sekali Jalan</option>
+              </select>
+              <input type="checkbox" id="is_roundtrip" hidden />
+            </div>
+            <div>
+              <label for="cabin" class="label">Kelas Kabin</label>
+              <select id="cabin" class="sb-select" aria-label="Pilih kelas kabin">
+                <option>Economy</option>
+                <option>Premium Economy</option>
+                <option>Business</option>
+                <option>First</option>
+                <option>Business & First</option>
+              </select>
+            </div>
+            <div>
+              <label for="adults" class="label">Penumpang</label>
+              <select id="adults" name="adults" class="sb-select" aria-label="Jumlah penumpang">
+                <option value="1" {% if adults|default:1|stringformat:"s" == "1" %}selected{% endif %}>1 Penumpang</option>
+                <option value="2" {% if adults|stringformat:"s" == "2" %}selected{% endif %}>2 Penumpang</option>
+                <option value="3" {% if adults|stringformat:"s" == "3" %}selected{% endif %}>3 Penumpang</option>
+                <option value="4" {% if adults|stringformat:"s" == "4" %}selected{% endif %}>4 Penumpang</option>
+                <option value="5" {% if adults|stringformat:"s" == "5" %}selected{% endif %}>5 Penumpang</option>
+                <option value="6" {% if adults|stringformat:"s" == "6" %}selected{% endif %}>6 Penumpang</option>
+                <option value="7" {% if adults|stringformat:"s" == "7" %}selected{% endif %}>7 Penumpang</option>
+                <option value="8" {% if adults|stringformat:"s" == "8" %}selected{% endif %}>8 Penumpang</option>
+                <option value="9" {% if adults|stringformat:"s" == "9" %}selected{% endif %}>9 Penumpang</option>
+              </select>
+            </div>
+          </div>
 
-    <form method="get" action="{% url 'flight_results' %}">
-        <div style="position:relative">
-            <label for="origin_display">Origin</label>
-            <input type="text" id="origin_display" value="" placeholder="Ketik kota, misal: Jakarta" autocomplete="off" />
-            <input type="hidden" id="origin" name="origin" value="{{ origin }}" />
-            <input type="hidden" id="origin_label" name="origin_label" value="{{ origin_label }}" />
-            <div id="origin_suggestions"></div>
-        </div>
-        <div style="position:relative">
-            <label for="destination_display">Destination</label>
-            <input type="text" id="destination_display" value="" placeholder="Ketik kota, misal: Denpasar" autocomplete="off" />
-            <input type="hidden" id="destination" name="destination" value="{{ destination }}" />
-            <input type="hidden" id="destination_label" name="destination_label" value="{{ destination_label }}" />
-            <div id="destination_suggestions"></div>
-        </div>
-        <div>
-            <label for="departure_date">Tanggal Berangkat</label>
-            <input type="date" id="departure_date" name="departure_date" value="{{ departure_date }}" required />
-        </div>
-        <div>
-            <label><input type="checkbox" id="is_roundtrip"> Round Trip</label>
-        </div>
-        <div id="return_date_wrap" style="display:none">
-            <label for="return_date">Tanggal Kepulangan</label>
-            <input type="date" id="return_date" name="return_date" value="{{ return_date }}" />
-        </div>
-        <div>
-            <label for="adults">Dewasa</label>
-            <input type="number" id="adults" name="adults" value="{{ adults|default:'1' }}" min="1" />
-        </div>
-        <div style="grid-column: 1 / -1">
-            <button type="submit">Cari Penerbangan</button>
-        </div>
-    </form>
+          <div class="form-grid">
+            <div class="field field-origin">
+              <label for="origin_display" class="label"><i class="bi bi-airplane" aria-hidden="true"></i> Dari</label>
+              <div class="input-wrap">
+                <input type="text" id="origin_display" value="" placeholder="Jakarta" autocomplete="off" class="input" aria-autocomplete="list" aria-controls="origin_suggestions" aria-expanded="false" aria-label="Kota asal" />
+                <input type="hidden" id="origin" name="origin" value="{{ origin }}" />
+                <input type="hidden" id="origin_label" name="origin_label" value="{{ origin_label }}" />
+                <div id="origin_suggestions" class="suggestions" role="listbox" aria-label="Saran kota asal"></div>
+              </div>
+            </div>
 
-    <script>
-      function attachAutocomplete(displayId, hiddenId, labelId, sugId){
-        const disp = document.getElementById(displayId);
-        const hid = document.getElementById(hiddenId);
-        const lbl = document.getElementById(labelId);
-        const sug = document.getElementById(sugId);
-        let t;
-        function render(items){
-          sug.innerHTML = '';
-          sug.style.position = 'absolute';
-          sug.style.background = '#fff';
-          sug.style.border = '1px solid #ddd';
-          sug.style.zIndex = 10;
-          items.forEach(it => {
-            const div = document.createElement('div');
-            div.textContent = it.label;
-            div.style.padding = '6px';
-            div.style.cursor = 'pointer';
-            div.addEventListener('mousedown', () => {
-              disp.value = it.label;
-              hid.value = it.code || disp.value;
-              lbl.value = it.label;
-              sug.innerHTML = '';
-            });
-            sug.appendChild(div);
+            <button type="button" id="swap_btn" class="swap field-swap" aria-label="Tukar asal dan tujuan"><i class="bi bi-arrow-left-right" aria-hidden="true"></i></button>
+
+            <div class="field field-destination">
+              <label for="destination_display" class="label"><i class="bi bi-airplane" aria-hidden="true"></i> Ke</label>
+              <div class="input-wrap">
+                <input type="text" id="destination_display" value="" placeholder="Singapore" autocomplete="off" class="input" aria-autocomplete="list" aria-controls="destination_suggestions" aria-expanded="false" aria-label="Kota tujuan" />
+                <input type="hidden" id="destination" name="destination" value="{{ destination }}" />
+                <input type="hidden" id="destination_label" name="destination_label" value="{{ destination_label }}" />
+                <div id="destination_suggestions" class="suggestions" role="listbox" aria-label="Saran kota tujuan"></div>
+              </div>
+            </div>
+
+            <div class="field field-departure">
+              <label for="departure_date" class="label">Tanggal Berangkat</label>
+              <div class="input-icon">
+                <i class="bi bi-calendar" aria-hidden="true"></i>
+                <input type="date" id="departure_date" name="departure_date" value="{{ departure_date }}" required class="date-input" aria-label="Tanggal berangkat" />
+              </div>
+            </div>
+
+            <div class="field field-return" id="return_date_wrap" hidden>
+              <label for="return_date" class="label">Tanggal Pulang</label>
+              <div class="input-icon">
+                <i class="bi bi-calendar" aria-hidden="true"></i>
+                <input type="date" id="return_date" name="return_date" value="{{ return_date }}" class="date-input" aria-label="Tanggal pulang" />
+              </div>
+            </div>
+
+            <div class="action">
+              <button type="submit" class="sb-button">Cari Penerbangan</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    function attachAutocomplete(displayId, hiddenId, labelId, sugId){
+      const disp = document.getElementById(displayId);
+      const hid = document.getElementById(hiddenId);
+      const lbl = document.getElementById(labelId);
+      const sug = document.getElementById(sugId);
+      let t;
+      function render(items){
+        sug.innerHTML = '';
+        items.forEach(it => {
+          const div = document.createElement('div');
+          div.textContent = it.label;
+          div.className = 'suggestion-item';
+          div.setAttribute('role','option');
+          div.addEventListener('mousedown', () => {
+            disp.value = it.label;
+            hid.value = it.code || disp.value;
+            lbl.value = it.label;
+            disp.setAttribute('aria-expanded','false');
+            sug.innerHTML = '';
           });
-          if(items.length === 0){
-            const empty = document.createElement('div');
-            empty.className = 'suggestion-empty';
-            empty.textContent = 'Tidak ada saran';
-            sug.appendChild(empty);
-          }
+          sug.appendChild(div);
+        });
+        if(items.length === 0){
+          const empty = document.createElement('div');
+          empty.className = 'suggestion-empty';
+          empty.textContent = 'Tidak ada saran';
+          sug.appendChild(empty);
         }
-        disp.addEventListener('input', () => {
-          const q = disp.value.trim();
-          hid.value = '';
-          lbl.value = '';
-          clearTimeout(t);
-          if(!q){
-            t = setTimeout(async () => {
-              try{
-                const r = await fetch('/api/locations?q=');
-                let items = [];
-                if(r.ok){ const j = await r.json(); items = j.items || []; }
-                render(items);
-              }catch(e){ render([]); }
-            }, 100);
-            return;
-          }
+      }
+      disp.addEventListener('input', () => {
+        const q = disp.value.trim();
+        hid.value = '';
+        lbl.value = '';
+        clearTimeout(t);
+        if(!q){
           t = setTimeout(async () => {
             try{
-              const r = await fetch('/api/locations?q=' + encodeURIComponent(q));
+              const r = await fetch('/api/locations?q=');
               let items = [];
-              if(r.ok){
-                const j = await r.json();
-                items = j.items || [];
-              }
+              if(r.ok){ const j = await r.json(); items = j.items || []; }
+              disp.setAttribute('aria-expanded','true');
               render(items);
-            }catch(e){
-              console.warn('Autocomplete error', e);
-              render([]);
-            }
-          }, 250);
-        });
-        disp.addEventListener('focus', () => {
-          if(!disp.value.trim()){
-            fetch('/api/locations?q=').then(r => r.json()).then(j => render(j.items || [])).catch(() => render([]));
-          }
-        });
-        disp.addEventListener('blur', () => { setTimeout(() => { sug.innerHTML=''; }, 200); });
-      }
-      attachAutocomplete('origin_display','origin','origin_label','origin_suggestions');
-      attachAutocomplete('destination_display','destination','destination_label','destination_suggestions');
-      document.querySelector('form').addEventListener('submit', (e) => {
-        const oc = document.getElementById('origin').value.trim();
-        const dc = document.getElementById('destination').value.trim();
-        if(!oc || !dc){
-          e.preventDefault();
-          alert('Silakan pilih kota dari dropdown agar kode IATA terisi.');
+            }catch(e){ render([]); }
+          }, 120);
+          return;
+        }
+        t = setTimeout(async () => {
+          try{
+            const r = await fetch('/api/locations?q=' + encodeURIComponent(q));
+            let items = [];
+            if(r.ok){ const j = await r.json(); items = j.items || []; }
+            disp.setAttribute('aria-expanded','true');
+            render(items);
+          }catch(e){ console.warn('Autocomplete error', e); render([]); }
+        }, 250);
+      });
+      disp.addEventListener('focus', () => {
+        if(!disp.value.trim()){
+          fetch('/api/locations?q=').then(r => r.json()).then(j => { disp.setAttribute('aria-expanded','true'); render(j.items || []); }).catch(() => render([]));
         }
       });
-      const cb = document.getElementById('is_roundtrip');
-      const wrap = document.getElementById('return_date_wrap');
-      cb.addEventListener('change', () => { wrap.style.display = cb.checked ? 'block' : 'none'; });
-    </script>
+      disp.addEventListener('blur', () => { setTimeout(() => { disp.setAttribute('aria-expanded','false'); sug.innerHTML=''; }, 200); });
+    }
 
+    attachAutocomplete('origin_display','origin','origin_label','origin_suggestions');
+    attachAutocomplete('destination_display','destination','destination_label','destination_suggestions');
+
+    document.querySelector('form').addEventListener('submit', (e) => {
+      const oc = document.getElementById('origin').value.trim();
+      const dc = document.getElementById('destination').value.trim();
+      if(!oc || !dc){
+        e.preventDefault();
+        alert('Silakan pilih kota dari dropdown agar kode IATA terisi.');
+      }
+      if(oc && dc && oc.toUpperCase() === dc.toUpperCase()){
+        e.preventDefault();
+        alert('Kota asal dan tujuan tidak boleh sama.');
+      }
+    });
+
+    const cb = document.getElementById('is_roundtrip');
+    const wrap = document.getElementById('return_date_wrap');
+    const trip = document.getElementById('trip_type');
+    function syncTrip(){ cb.checked = trip.value === 'round'; wrap.hidden = !cb.checked; }
+    trip.addEventListener('change', syncTrip); syncTrip();
+
+    document.getElementById('swap_btn').addEventListener('click', () => {
+      const od = document.getElementById('origin_display');
+      const dd = document.getElementById('destination_display');
+      const o = document.getElementById('origin');
+      const d = document.getElementById('destination');
+      const ol = document.getElementById('origin_label');
+      const dl = document.getElementById('destination_label');
+      const odv = od.value, ddv = dd.value, ov = o.value, dv = d.value, olv = ol.value, dlv = dl.value;
+      od.value = ddv; dd.value = odv; o.value = dv; d.value = ov; ol.value = dlv; dl.value = olv;
+    });
+  </script>
 </body>
 </html>

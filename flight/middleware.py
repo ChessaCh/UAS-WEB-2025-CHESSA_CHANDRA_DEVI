@@ -15,5 +15,9 @@ class AmadeusTokenMiddleware:
             token = get_access_token(force_refresh=True)
         if token:
             request.amadeus_token = token
+            try:
+                request.session["amadeus_token"] = token
+            except Exception:
+                pass
         response = self.get_response(request)
         return response

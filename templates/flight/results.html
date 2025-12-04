@@ -2,57 +2,321 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Flight Results</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Hasil Penerbangan</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
   <style>
-    body { font-family: Arial, sans-serif; margin: 24px; }
-    .error { color: #c00; }
-    .card { border: 1px solid #ddd; padding: 12px; margin-bottom: 8px; border-radius: 6px; }
-    .meta { color: #555; font-size: 12px; }
+    :root {
+      --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px;
+      --gutter: var(--space-4);
+      --radius-1: 8px; --radius-2: 12px; --radius-3: 16px; --radius-4: 24px;
+      --shadow-1: 0 2px 8px rgba(0,0,0,0.10); --shadow-2: 0 6px 20px rgba(0,0,0,0.12);
+      --surface: #ffffff; --surface-muted: #f3f4f6; --text: #111827; --muted: #6b7280; --border: #e5e7eb;
+      --primary: #2563eb; --primary-hover: #1d4ed8; --danger: #dc2626;
+      --bp-sm: 480px; --bp-md: 768px; --bp-lg: 1024px; --bp-xl: 1280px;
+      --container-max: 1200px;
+    }
+
+    * { box-sizing: border-box; }
+    html { color-scheme: light; }
+    body { margin: 0; font-family: 'Poppins', Arial, sans-serif; color: var(--text); background: #0b1220; }
+    a { color: var(--primary); text-decoration: none; }
+    a:hover { color: var(--primary-hover); }
+    :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+    .container { width: min(var(--container-max), 100% - var(--space-6)); margin-inline: auto; padding-inline: var(--space-4); }
+    header.site-header { position: relative; z-index: 2; padding: var(--space-3) 0; }
+    .header-bar { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: var(--space-3); }
+    .nav-pill { display: inline-flex; align-items: center; gap: var(--space-3); background: var(--surface); border-radius: 999px; padding: var(--space-2) var(--space-3); box-shadow: var(--shadow-1); }
+    .nav-link { color: var(--text); font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
+    .divider { width: 1px; height: 20px; background: var(--border); }
+    .actions { display: inline-flex; align-items: center; gap: var(--space-2); }
+    .btn { display: inline-flex; align-items: center; justify-content: center; height: 40px; padding: 0 var(--space-4); border-radius: var(--radius-2); font-weight: 600; border: 1px solid transparent; color: var(--text); background: transparent; transition: background-color .2s ease, color .2s ease, border-color .2s ease; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+
+    main.content { padding: var(--space-8) 0 var(--space-8); }
+    .page-header { display: flex; justify-content: space-between; align-items: end; margin-top: var(--space-6); margin-bottom: var(--space-5); }
+    .title { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; margin: 0; color: #f8fafc; }
+    .subtitle { color: #cbd5e1; margin-top: var(--space-1); }
+
+    .offer-list { display: grid; grid-template-columns: 1fr; gap: var(--space-4); }
+    @media (min-width: 768px) { .offer-list { grid-template-columns: 1fr 1fr; } }
+    @media (min-width: 1024px) { .page-header { margin-top: var(--space-7); } }
+    .offer-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-2); box-shadow: var(--shadow-1); padding: var(--space-4); display: grid; gap: var(--space-3); transition: box-shadow .2s ease, transform .2s ease; }
+    .offer-card:hover { box-shadow: var(--shadow-2); transform: translateY(-2px); }
+    .header-row { display: flex; justify-content: space-between; align-items: center; }
+    .meta { color: var(--muted); font-size: 13px; }
+    .route { font-size: 16px; font-weight: 600; }
+    .price { font-weight: 700; }
+    .card-actions { display: flex; gap: var(--space-2); justify-content: flex-end; }
+    .sb-button { height: 44px; padding: 0 22px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius-3); font-weight: 600; cursor: pointer; min-width: 180px; display: inline-flex; align-items: center; justify-content: center; transition: background-color .3s ease, box-shadow .3s ease, color .3s ease; }
+    .sb-button:hover { background: var(--primary-hover); color: #fff; box-shadow: var(--shadow-2); }
+    .error { color: var(--danger); margin-bottom: var(--space-3); }
+
+    .sb-modal { position: fixed; inset: 0; z-index: 1000; display: none; }
+    .sb-modal.show { display: grid; place-items: center; }
+    .sb-modal .backdrop { position: absolute; inset: 0; background: rgba(15,23,42,.6); opacity: 0; transition: opacity .3s ease; }
+    .sb-modal.show .backdrop { opacity: 1; }
+    .sb-modal .dialog { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-4); box-shadow: var(--shadow-2); width: min(900px, 100% - var(--space-6)); max-height: min(90vh, 100svh - var(--space-6)); overflow: auto; transform: translateY(8px); opacity: 0; transition: opacity .3s ease, transform .3s ease; will-change: transform, opacity; }
+    .sb-modal.show .dialog { opacity: 1; transform: translateY(0); }
+    .sb-modal .dialog-header { display: flex; justify-content: space-between; align-items: center; padding: var(--space-5); border-bottom: 1px solid var(--border); }
+    .sb-modal .dialog-header .title { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; color: #0f172a; }
+    .sb-modal .dialog-body { padding: var(--space-4); }
+    .sb-modal .close { border: 1px solid transparent; background: transparent; color: var(--text); height: 32px; width: 32px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+    .sb-modal .close:hover { background: var(--surface-muted); }
+    @media (min-width: 1024px) { .sb-modal .dialog { width: min(1000px, 100% - var(--space-8)); } }
+
+    .sb-modal .dialog-body .booking-card { background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-3); padding: var(--space-4); display: grid; gap: var(--space-2); }
+    .sb-modal .dialog-body .price { font-size: 18px; font-weight: 700; color: #0f172a; }
+    .sb-modal .dialog-body .meta { color: #334155; }
+    .sb-modal .dialog-body .title { color: #0f172a; }
+    .sb-modal .dialog-body .form-grid { gap: var(--space-5); grid-template-columns: 1fr; }
+    @media (min-width: 768px) { .sb-modal .dialog-body .form-grid { grid-template-columns: 1fr 1fr; } }
+    .sb-modal .dialog-body .modal-form-two-col { display: grid; row-gap: 20px; }
+    .sb-modal .dialog-body .modal-form-two-col .form-row { display: grid; grid-template-columns: 1fr 1fr; column-gap: var(--space-5); align-items: start; }
+    .sb-modal .dialog-body .modal-form-two-col .form-row:first-child { margin-top: var(--space-6); }
+    @media (max-width: 767px) { .sb-modal .dialog-body .modal-form-two-col .form-row { grid-template-columns: 1fr; } }
+    .sb-modal .dialog-body .modal-form-two-col .form-field label { display: block; margin-bottom: 6px; }
+    .sb-modal .dialog-body .modal-form-two-col .form-field { margin: 0; }
+    .sb-modal .dialog-body .input, 
+    .sb-modal .dialog-body select { height: 44px; padding: 10px 14px; width: 100%; max-width: 100%; box-sizing: border-box; background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-2); font-size: 16px; color: #0f172a; }
+    .sb-modal .dialog-body .input::placeholder { color: #94a3b8; }
+    .sb-modal .dialog-body label { color: #334155; font-weight: 600; }
+    .sb-modal .dialog-body .input.invalid, .sb-modal .dialog-body select.invalid { border-color: #dc2626; }
+    .sb-modal .dialog-body .error { color: #dc2626; margin-bottom: var(--space-3); }
+    .sb-modal .dialog-body .card-actions { display: flex; gap: var(--space-3); justify-content: flex-end; }
+    .sb-modal .dialog-body .card-actions .btn { height: 44px; padding: 0 var(--space-5); font-size: 16px; background: var(--surface-muted); border: 1px solid var(--border); color: #0f172a; border-radius: var(--radius-3); font-weight: 600; }
+    .sb-modal .dialog-body .card-actions .sb-button { height: 44px; padding: 0 var(--space-5); font-size: 16px; border-radius: var(--radius-3); min-width: auto; }
+    .sb-modal .dialog-body .sb-button:focus-visible, 
+    .sb-modal .dialog-body .btn:focus-visible, 
+    .sb-modal .close:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
   </style>
 </head>
 <body>
-  <h1>Flight Results</h1>
-  {% if origin_label or destination_label %}
-    <div><strong>Pencarian:</strong> {{ origin_label|default:origin }} → {{ destination_label|default:destination }}</div>
-  {% endif %}
+  {% include 'flight/header.html' %}
 
-  {% if error %}
-    <div class="error">{{ error }}</div>
-  {% endif %}
-
-  {% if results and results.data %}
-    {% for offer in results.data %}
-      <div class="card">
-        <div class="meta">Offer ID: {{ offer.id }}</div>
-        {% if offer.itineraries %}
-          {% for itin in offer.itineraries %}
-            <div>
-              {% for segment in itin.segments %}
-                <div>
-                  {{ segment.departure.iataCode }} → {{ segment.arrival.iataCode }}
-                  ({{ segment.carrierCode }} {{ segment.number }})
-                  {{ segment.departure.at }} - {{ segment.arrival.at }}
-                </div>
-              {% endfor %}
-            </div>
-          {% endfor %}
-        {% endif %}
-        {% if offer.price %}
-          <div><strong>Harga:</strong> {{ offer.price.total }} {{ offer.price.currency }}</div>
-        {% endif %}
-        <form method="get" action="{% url 'flight_booking' %}">
-          <input type="hidden" name="idx" value="{{ forloop.counter0 }}" />
-          <button type="submit">Booking</button>
-        </form>
+  <main class="content" role="main">
+    <div class="container">
+      <div class="page-header">
+        <div>
+          <h1 class="title">Hasil Penerbangan</h1>
+          {% if origin_label or destination_label %}
+            <p class="subtitle"><strong>Pencarian:</strong> {{ origin_label|default:origin }} → {{ destination_label|default:destination }}</p>
+          {% endif %}
+        </div>
+        <div class="card-actions">
+          <a href="{% url 'search_flights' %}" class="sb-button">Ubah Pencarian</a>
+        </div>
       </div>
-    {% endfor %}
-  {% else %}
-    <div>Tidak ada hasil ditemukan.</div>
-  {% endif %}
 
-  <p>
-    <a href="{% url 'search_flights' %}">Kembali ke Search Flight</a>
-  </p>
+      {% if error %}
+        <div class="error" role="alert">{{ error }}</div>
+        {% if friendly_error %}
+          <div class="error" role="alert">{{ friendly_error }}</div>
+        {% endif %}
+      {% endif %}
+
+      {% if results and results.data %}
+        <section class="offer-list" aria-label="Daftar Penawaran">
+          {% for offer in results.data %}
+            <article class="offer-card" aria-label="Penawaran">
+              <div class="header-row">
+                <div class="meta">Offer ID: {{ offer.id }}</div>
+              </div>
+              {% if offer.itineraries %}
+                {% for itin in offer.itineraries %}
+                  <div>
+                    {% for segment in itin.segments %}
+                      <div>
+                        {{ segment.departure.iataCode }} → {{ segment.arrival.iataCode }}
+                        <span class="meta">({{ segment.carrierCode }} {{ segment.number }})</span>
+                        <div class="meta">{{ segment.departure.at }} - {{ segment.arrival.at }}</div>
+                      </div>
+                    {% endfor %}
+                  </div>
+                {% endfor %}
+              {% endif %}
+              {% if offer.price %}
+                <div class="price">Total: {{ offer.price.total }} {{ offer.price.currency }}{% if offer.price.total_idr_str %} • Rp {{ offer.price.total_idr_str }}{% endif %}</div>
+              {% endif %}
+              {% if offer.meta and offer.meta.bookableSeats %}
+                <div class="meta">Kursi tersedia: {{ offer.meta.bookableSeats }}</div>
+              {% endif %}
+              {% if offer.meta and offer.meta.validatingMismatch %}
+                <div class="error" role="alert">Peringatan: Validating airline berbeda dengan carrier segmen; bisa gagal saat order.</div>
+              {% endif %}
+              <div class="card-actions">
+                <!-- Fallback href points to booking page for non-JS environments; JS intercepts to open modal -->
+                <a href="{% url 'booking_page' %}?idx={{ forloop.counter0 }}" class="sb-button booking-btn" data-idx="{{ forloop.counter0 }}" aria-controls="bookingModal" aria-haspopup="dialog" role="button">Booking</a>
+              </div>
+            </article>
+          {% endfor %}
+        </section>
+      {% else %}
+        <section aria-label="Tidak ada hasil">
+          <article class="offer-card">
+            <div class="route">Tidak ada hasil ditemukan.</div>
+            <div class="card-actions">
+              <a href="{% url 'search_flights' %}" class="sb-button">Kembali ke Pencarian</a>
+            </div>
+          </article>
+        </section>
+      {% endif %}
+    </div>
+  </main>
+  <div id="bookingModal" class="sb-modal" role="dialog" aria-modal="true" aria-label="Flight Booking">
+    <div class="backdrop"></div>
+    <div class="dialog" tabindex="-1">
+      <div class="dialog-header">
+        <button type="button" class="close" aria-label="Tutup">✕</button>
+      </div>
+      <div class="dialog-body" id="bookingModalBody"></div>
+    </div>
+  </div>
+<script>
+  (function(){
+    var modal = document.getElementById('bookingModal');
+    var backdrop = modal.querySelector('.backdrop');
+    var dialog = modal.querySelector('.dialog');
+    var closeBtn = modal.querySelector('.close');
+    var body = document.getElementById('bookingModalBody');
+    function open(){ modal.classList.add('show'); dialog.focus(); }
+    function close(){ modal.classList.remove('show'); }
+    backdrop.addEventListener('click', close);
+    closeBtn.addEventListener('click', close);
+    document.addEventListener('keydown', function(e){ if(e.key === 'Escape'){ close(); } });
+    var btns = document.querySelectorAll('.booking-btn');
+    if(!btns || btns.length === 0) return;
+    btns.forEach(function(btn){
+      btn.addEventListener('click', function(e){
+        if(e && typeof e.preventDefault === 'function') e.preventDefault();
+        if(e && typeof e.stopPropagation === 'function') e.stopPropagation();
+        var idx = parseInt(btn.getAttribute('data-idx'), 10);
+        if(isNaN(idx)) idx = 0;
+        // Use the link's href to preserve any parameters and provide progressive enhancement
+        var url = btn.getAttribute('href') || ("{% url 'booking_page' %}" + '?idx=' + encodeURIComponent(idx));
+        fetch(url, { credentials: 'include' })
+          .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
+          .then(function(html){
+            var parser = new DOMParser();
+            var doc = parser.parseFromString(html, 'text/html');
+            var main = doc.querySelector('main.content');
+            body.innerHTML = main ? main.innerHTML : html;
+            var scripts = doc.querySelectorAll('script');
+            scripts.forEach(function(s){
+              var ns = document.createElement('script');
+              if(s.src){ ns.src = s.src; } else { ns.textContent = s.textContent; }
+              body.appendChild(ns);
+            });
+            (function(){
+              var form = body.querySelector('#booking_form');
+              if(!form || form.getAttribute('data-enhanced')==='true') { return; }
+              form.setAttribute('data-enhanced','true');
+              var name = body.querySelector('#name');
+              var passport = body.querySelector('#passport');
+              var nationality = body.querySelector('#nationality');
+              var birth = body.querySelector('#birth_date');
+              var expiry = body.querySelector('#passport_expiry');
+              var email = body.querySelector('#email');
+              var phone = body.querySelector('#phone');
+              [name, passport, nationality, birth, expiry, email, phone].forEach(function(el){
+                if(el) el.setAttribute('aria-required','true');
+              });
+              if(birth) birth.setAttribute('placeholder','mm/dd/yyyy');
+              if(expiry) expiry.setAttribute('placeholder','mm/dd/yyyy');
+              if(phone){
+                phone.setAttribute('pattern','^(?:\\+?62\\s?\\d{8,15}|0\\d{9,13})$');
+                phone.setAttribute('title','Gunakan format +62xxxxxxxxx atau 08xxxxxxxxx');
+                phone.setAttribute('inputmode','numeric');
+              }
+              if(nationality){
+                if(nationality.options && nationality.options.length < 10){
+                  var countries = [
+                    ['ID','Indonesia'],['MY','Malaysia'],['SG','Singapore'],['TH','Thailand'],['PH','Philippines'],['VN','Vietnam'],
+                    ['JP','Japan'],['KR','South Korea'],['CN','China'],['TW','Taiwan'],['HK','Hong Kong'],
+                    ['IN','India'],['AE','United Arab Emirates'],['SA','Saudi Arabia'],['QA','Qatar'],['KW','Kuwait'],
+                    ['AU','Australia'],['NZ','New Zealand'],['US','United States'],['CA','Canada'],['GB','United Kingdom'],
+                    ['DE','Germany'],['FR','France'],['NL','Netherlands'],['BE','Belgium'],['ES','Spain'],['IT','Italy'],
+                    ['SE','Sweden'],['NO','Norway'],['DK','Denmark'],['FI','Finland'],['CH','Switzerland'],['ZA','South Africa']
+                  ];
+                  nationality.innerHTML = '';
+                  var opt = document.createElement('option'); opt.value=''; opt.textContent='Pilih negara'; nationality.appendChild(opt);
+                  countries.forEach(function(c){ var o=document.createElement('option'); o.value=c[0]; o.textContent=c[1]; nationality.appendChild(o); });
+                }
+              }
+              var err = body.querySelector('#modal-error');
+              if(!err){ err = document.createElement('div'); err.id='modal-error'; err.className='error'; err.setAttribute('role','alert'); err.setAttribute('aria-live','assertive'); body.insertBefore(err, body.firstChild); }
+              function showError(msg){ err.textContent = msg; }
+              function isFuture(d){ var t=new Date(); t.setHours(0,0,0,0); return d.getTime() > t.getTime(); }
+              function setInvalid(el, flag){ if(!el) return; el.classList.toggle('invalid', !!flag); el.setAttribute('aria-invalid', flag ? 'true' : 'false'); }
+              [name, passport, nationality, birth, expiry, email, phone].forEach(function(el){ if(el){ el.addEventListener('input', function(){ setInvalid(el, false); err.textContent=''; }); }});
+
+              function moveField(id){
+                var input = body.querySelector('#'+id);
+                if(!input) return null;
+                var label = body.querySelector('label[for="'+id+'"]');
+                var wrap = document.createElement('div');
+                wrap.className = 'form-field';
+                if(label) wrap.appendChild(label.parentNode ? label.parentNode.removeChild(label) : label);
+                wrap.appendChild(input.parentNode ? input.parentNode.removeChild(input) : input);
+                return wrap;
+              }
+              var grid = body.querySelector('.form-grid');
+              var container = document.createElement('div');
+              container.className = 'modal-form-two-col';
+              var r1 = document.createElement('div'); r1.className = 'form-row';
+              var r2 = document.createElement('div'); r2.className = 'form-row';
+              var r3 = document.createElement('div'); r3.className = 'form-row';
+              var r4 = document.createElement('div'); r4.className = 'form-row';
+
+              var f_name = moveField('name');
+              var f_passport = moveField('passport');
+              var f_nat = moveField('nationality');
+              var f_birth = moveField('birth_date');
+              var f_exp = moveField('passport_expiry');
+              var f_email = moveField('email');
+              var f_phone = moveField('phone');
+
+              if(f_name) r1.appendChild(f_name);
+              if(f_passport) r1.appendChild(f_passport);
+              if(f_nat) r2.appendChild(f_nat);
+              if(f_birth) r2.appendChild(f_birth);
+              if(f_exp) r3.appendChild(f_exp);
+              if(f_email) r3.appendChild(f_email);
+              if(f_phone) r4.appendChild(f_phone);
+              var spacer = document.createElement('div'); spacer.className = 'form-field'; r4.appendChild(spacer);
+
+              container.appendChild(r1);
+              container.appendChild(r2);
+              container.appendChild(r3);
+              container.appendChild(r4);
+              if(grid){ grid.style.display = 'none'; }
+              form.insertBefore(container, form.querySelector('.card-actions'));
+              form.addEventListener('submit', function(ev){
+                var errs = [];
+                [name, passport, nationality, birth, expiry, email, phone].forEach(function(el){ setInvalid(el, false); });
+                if(name && !name.value.trim()){ errs.push('Nama Lengkap wajib diisi'); setInvalid(name, true); }
+                if(passport && !passport.value.trim()){ errs.push('Nomor Paspor wajib diisi'); setInvalid(passport, true); }
+                if(nationality && !nationality.value.trim()){ errs.push('Nationality wajib dipilih'); setInvalid(nationality, true); }
+                if(birth && !birth.value){ errs.push('Tanggal Lahir wajib diisi'); setInvalid(birth, true); }
+                if(birth && birth.value){ var bd=new Date(birth.value); var now=new Date(); now.setHours(0,0,0,0); if(bd.getTime() > now.getTime()){ errs.push('Tanggal Lahir tidak boleh di masa depan'); setInvalid(birth, true); } }
+                if(expiry && !expiry.value){ errs.push('Masa Berlaku Paspor wajib diisi'); setInvalid(expiry, true); }
+                if(expiry && expiry.value){ var ed=new Date(expiry.value); if(!isFuture(ed)){ errs.push('Masa Berlaku Paspor harus di masa depan'); setInvalid(expiry, true); } }
+                if(email && !email.checkValidity()){ errs.push('Email tidak valid'); setInvalid(email, true); }
+                if(phone){ var re = /^(?:\+?62\s?\d{8,15}|0\d{9,13})$/; var ph = phone.value.trim(); if(!re.test(ph)){ errs.push('No. HP tidak valid (gunakan +62 atau 08)'); setInvalid(phone, true); } }
+                if(errs.length){ ev.preventDefault(); showError(errs[0]); }
+              });
+            })();
+            open();
+          })
+          .catch(function(){ body.innerHTML = '<div class="error">Gagal memuat form booking.</div>'; open(); });
+      });
+    });
+  })();
+</script>
 </body>
 </html>

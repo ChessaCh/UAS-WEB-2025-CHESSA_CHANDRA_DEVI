@@ -1,0 +1,20 @@
+{% load static %}
+<!-- Extracted header component: shared site header -->
+<header class="site-header">
+  <div class="container header-bar">
+    <nav class="nav-pill" aria-label="Primary">
+      <a class="nav-link" href="{% url 'search_flights' %}"><i class="bi bi-airplane-fill" aria-hidden="true"></i><span>Flights</span></a>
+      <div class="divider" aria-hidden="true"></div>
+      <a class="nav-link" href="{% url 'my_bookings' %}"><i class="bi bi-journal-bookmark-fill" aria-hidden="true"></i><span>My Bookings</span></a>
+    </nav>
+    <div class="actions">
+      {% if request.user.is_authenticated %}
+        <span style="color:#fff; font-weight:600;">Hai, {{ request.user.username }}</span>
+        <a class="btn btn-primary" href="{% url 'logout' %}">Logout</a>
+      {% else %}
+        <a class="btn btn-primary" href="{% url 'login' %}">Login</a>
+        <a class="btn" href="{% url 'register' %}">Register</a>
+      {% endif %}
+    </div>
+  </div>
+</header>

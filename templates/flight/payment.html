@@ -1,0 +1,774 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Payment</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <style>
+    :root {
+      --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px;
+      --radius: 8px; --radius-2: 12px;
+      --shadow-1: 0 2px 8px rgba(0,0,0,0.10); --shadow-2: 0 6px 20px rgba(0,0,0,0.12);
+      --text: #111827; --muted: #6b7280; --border: #e5e7eb; --surface: #ffffff; --bg: #0b1220;
+      --primary: #2563eb; --primary-hover: #1d4ed8;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, "Poppins", Arial, sans-serif; color: var(--text); background: var(--bg); }
+    a { color: var(--primary); text-decoration: none; }
+    a:hover { color: var(--primary-hover); }
+    :focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+
+    /* Header styles: aligned with search.html and bookings.html */
+    header.site-header { position: relative; z-index: 2; padding: var(--space-3) 0; }
+    .header-bar { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: var(--space-3); }
+    .nav-pill { display: inline-flex; align-items: center; gap: var(--space-3); background: var(--surface); border-radius: 999px; padding: var(--space-2) var(--space-3); box-shadow: var(--shadow-1); }
+    .nav-link { color: var(--text); font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
+    .divider { width: 1px; height: 20px; background: var(--border); }
+    .actions { display: inline-flex; align-items: center; gap: var(--space-2); }
+    .btn { display: inline-flex; align-items: center; justify-content: center; height: 40px; padding: 0 var(--space-4); border-radius: var(--radius-2); font-weight: 600; border: 1px solid transparent; color: var(--text); background: transparent; transition: background-color .2s ease, color .2s ease, border-color .2s ease; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .container { width: min(1100px, 100% - var(--space-6)); margin-inline: auto; padding-inline: var(--space-4); }
+    main.content { padding: var(--space-7) 0 var(--space-8); }
+    .grid { display: grid; grid-template-columns: calc(60% - 2.5%) calc(35% - 2.5%); column-gap: 5%; align-items: start; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; row-gap: var(--space-5); } }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-2); }
+    .card .header { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-5); border-bottom: 1px solid var(--border); }
+    .card .body { padding: var(--space-5); }
+    .title { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+    .subtitle { color: #9e9e9e; font-size: 14px; }
+    .methods { display: flex; gap: var(--space-3); margin-top: var(--space-3); }
+    .method { display: inline-flex; align-items: center; gap: 10px; padding: 10px 16px; border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; color: var(--text); background: #f8fafc; }
+    .method.active { border-color: var(--primary); color: var(--primary); background: #eef2ff; }
+    .field { display: grid; gap: 6px; margin-top: var(--space-4); }
+    .label { font-size: 12px; color: var(--muted); font-weight: 600; }
+    .input { height: 44px; width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 16px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+    @media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
+    .note { color: #9e9e9e; font-size: 12px; margin-top: var(--space-4); }
+    .pay-btn { display: inline-flex; align-items: center; gap: 10px; height: 44px; padding: 0 18px; border-radius: 8px; background: var(--primary); color: #fff; border: 1px solid var(--primary); cursor: pointer; font-weight: 600; }
+    .pay-btn:hover { background: var(--primary-hover); }
+    .pay-btn[disabled] { opacity: .7; cursor: not-allowed; }
+    .summary .logo { width: 100px; height: 100px; border-radius: 12px; background: #f3f4f6; display: grid; place-items: center; font-weight: 700; color: var(--muted); }
+    .summary .meta { color: var(--muted); font-size: 13px; }
+    .summary .price-row { display: flex; justify-content: space-between; margin-top: 10px; }
+    .summary .total { color: var(--blue); font-weight: 700; }
+    .error { color: #dc2626; margin-top: var(--space-3); }
+    .success { color: #16a34a; margin-top: var(--space-3); }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+    .panel { margin-top: var(--space-4); }
+    .info-card { display: flex; align-items: center; gap: var(--space-3); background: #e7f2ff; color: #0f172a; border: 1px solid #cfe3ff; border-radius: var(--radius); padding: var(--space-4); }
+    .transfer-card { display: grid; gap: var(--space-3); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-4); margin-top: var(--space-4); }
+    .transfer-row { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: var(--space-3); }
+    .transfer-row .label { color: var(--muted); font-weight: 600; }
+    .transfer-row .value { font-weight: 600; }
+    .copy-btn { height: 36px; width: 36px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+    .copy-btn:hover { background: #eef2ff; border-color: var(--primary); color: var(--primary); }
+    .copy-btn.copied { background: #dcfce7; border-color: #16a34a; color: #166534; }
+    .wallet-label { font-weight: 600; font-size: 16px; color: var(--text); margin-top: var(--space-3); }
+    .wallet-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); margin-top: var(--space-3); }
+    .wallet-btn { display: inline-flex; align-items: center; gap: var(--space-3); background: #ffffff; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 2px 2px 8px rgba(0,0,0,0.05); padding: 16px; min-height: 56px; cursor: pointer; font-weight: 600; color: var(--text); }
+    .wallet-btn:hover { border-color: var(--primary); box-shadow: var(--shadow-1); }
+    .wallet-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+    .dot { width: 24px; height: 24px; border-radius: 999px; display: inline-block; }
+    .dot-blue { background: #2563eb; }
+    .dot-purple { background: #7c3aed; }
+    .dot-orange { background: #f97316; }
+    @media (max-width: 600px) { .wallet-grid { grid-template-columns: 1fr; } }
+    .wallet-sec { background: #f5f5f5; display: flex; align-items: center; gap: var(--space-3); padding: 8px; border-radius: 4px; margin: 16px 0; color: #0f172a; }
+    .wallet-paybar { width: 100%; padding: 24px 0; }
+    .wallet-card { background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 4px 12px rgba(0,0,0,0.1); padding: var(--space-4); margin-top: var(--space-3); transition: opacity .2s ease, transform .2s ease; }
+    .wallet-title { display: flex; align-items: center; gap: var(--space-3); color: #2563eb; font-weight: 700; }
+    .wallet-phone { position: relative; margin-top: var(--space-3); min-height: 44px; overflow: hidden; --phone-icon-size: 20px; --baseline-adjust: -10px; color: #757575ff }
+    .wallet-phone .icon { position: absolute; left: 12px; top: calc(50% + var(--baseline-adjust)); transform: translateY(-50%); color: var(--muted); font-size: var(--phone-icon-size); width: var(--phone-icon-size); height: var(--phone-icon-size); display: inline-flex; align-items: center; justify-content: center; pointer-events: none; z-index: 2; line-height: 1; }
+    .wallet-input { position: relative; width: 100%; height: 44px; padding: 10px 14px 10px 44px; border: 1px solid transparent; border-radius: var(--radius); font-size: 16px; line-height: 24px; background: #e0f2fe; color: var(--text); }
+    .wallet-help { font-size: 12px; color: #6b7280; margin-top: 6px; }
+    .wallet-qr { display: flex; align-items: center; gap: var(--space-3); background: #f3f4f6; border-radius: var(--radius); padding: var(--space-3); margin-top: var(--space-3); }
+    .wallet-qr .bold { font-weight: 700; color: var(--text); }
+    .wallet-qr .muted { color: #9ca3af; }
+    .wallet-info { display: flex; align-items: center; gap: var(--space-3); background: #f5f5f5; border-radius: 4px; padding: 8px; margin: 16px 0; color: #374151; }
+    .success-modal { position: fixed; inset: 0; z-index: 1000; display: none; }
+    .success-modal.show { display: grid; place-items: center; }
+    .success-modal .backdrop { position: absolute; inset: 0; background: rgba(15,23,42,.6); opacity: 0; transition: opacity .3s ease; }
+    .success-modal.show .backdrop { opacity: 1; }
+    .success-modal .dialog { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-2); box-shadow: var(--shadow-2); width: min(640px, 100% - var(--space-6)); max-height: min(90vh, 100svh - var(--space-6)); overflow: auto; transform: translateY(8px); opacity: 0; transition: opacity .25s ease, transform .25s ease; }
+    .success-modal.show .dialog { opacity: 1; transform: translateY(0); }
+    .success-modal .dialog-header { display: flex; justify-content: space-between; align-items: center; padding: var(--space-5); border-bottom: 1px solid var(--border); }
+    .success-modal .dialog-header .title { display: inline-flex; align-items: center; gap: var(--space-2); font-size: 20px; font-weight: 700; color: #0f172a; }
+    .success-modal .dialog-body { padding: var(--space-4); display: grid; gap: var(--space-4); }
+    .detail-grid { display: grid; grid-template-columns: 1fr; gap: var(--space-3); }
+    .detail-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+    .detail-row .label { color: var(--muted); font-weight: 600; }
+    .detail-row .value { font-weight: 700; color: #0f172a; }
+    .success-actions { display: flex; justify-content: flex-end; gap: var(--space-3); }
+    .modal-btn { height: 44px; padding: 0 var(--space-5); border-radius: var(--radius-2); font-weight: 600; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+    .modal-btn:hover { background: #eef2ff; border-color: var(--primary); color: var(--primary); }
+    .modal-btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .modal-btn-primary:hover { background: var(--primary-hover); }
+    @media (max-width: 480px) { .success-modal .dialog { width: min(100%, 100% - var(--space-4)); } }
+    .receipt-modal { position: fixed; inset: 0; z-index: 1000; display: none; }
+    .receipt-modal.show { display: grid; place-items: center; }
+    .receipt-modal .backdrop { position: absolute; inset: 0; background: rgba(15,23,42,.6); opacity: 0; transition: opacity .3s ease; }
+    .receipt-modal.show .backdrop { opacity: 1; }
+    .receipt-modal .dialog { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-2); box-shadow: var(--shadow-2); width: min(760px, 100% - var(--space-6)); max-height: min(90vh, 100svh - var(--space-6)); overflow: auto; transform: translateY(8px); opacity: 0; transition: opacity .25s ease, transform .25s ease; }
+    .receipt-modal.show .dialog { opacity: 1; transform: translateY(0); }
+    .receipt-modal .dialog-header { display: flex; justify-content: space-between; align-items: center; padding: var(--space-5); border-bottom: 1px solid var(--border); }
+    .receipt-modal .dialog-header .title { display: inline-flex; align-items: center; gap: var(--space-2); font-size: 20px; font-weight: 700; color: #0f172a; }
+    .receipt-modal .dialog-body { padding: var(--space-4); display: grid; gap: var(--space-4); }
+    .receipt-grid { display: grid; grid-template-columns: 1fr; gap: var(--space-3); }
+    .receipt-row { display: grid; grid-template-columns: 220px 1fr; gap: var(--space-3); align-items: start; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+    .receipt-row .label { color: var(--muted); font-weight: 600; }
+    .receipt-row .value { font-weight: 700; color: #0f172a; }
+    .receipt-actions { display: flex; justify-content: flex-end; gap: var(--space-3); }
+    .receipt-error { color: #dc2626; }
+    .loading { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--muted); }
+    .receipt-debug { font-size: 12px; color: #6b7280; }
+    .receipt-debug code { display: inline-block; background: #f3f4f6; padding: 2px 6px; border-radius: 4px; }
+    @media (max-width: 480px) { .receipt-modal .dialog { width: min(100%, 100% - var(--space-4)); } .receipt-row { grid-template-columns: 1fr; } }
+    @media print { .success-modal, .receipt-modal .backdrop { display: none !important; } .receipt-modal .dialog { box-shadow: none; border-color: transparent; width: 100%; } }
+    @media (max-width: 480px) {
+      .wallet-input { height: 48px; padding-left: 46px; line-height: 26px; }
+      .wallet-phone { --phone-icon-size: 18px; --baseline-adjust: 0px; }
+      .wallet-phone .icon { left: 10px; }
+    }
+    .methods { flex-wrap: wrap; }
+    @media (max-width: 768px) {
+      .input { height: 48px; }
+      .pay-btn { height: 48px; }
+      .method { padding: 10px 14px; }
+      .methods .method { flex: 1 1 calc(50% - var(--space-3)); }
+      .summary .logo { width: 80px; height: 80px; }
+    }
+    @media (min-width: 769px) and (max-width: 1024px) {
+      .grid { grid-template-columns: 1fr 1fr; column-gap: var(--space-4); }
+    }
+    @media (min-width: 1025px) {
+      .grid { grid-template-columns: calc(60% - 2.5%) calc(35% - 2.5%); column-gap: 5%; }
+    }
+  </style>
+</head>
+<body>
+  {% include 'flight/header.html' %}
+  <main class="content" role="main">
+    <div class="container">
+      <div class="grid">
+        <section class="card payment">
+          <div class="header">
+            <i class="bi bi-lock" style="font-size:24px;" aria-hidden="true"></i>
+            <div>
+              <div class="title">Payment Details</div>
+              <div class="subtitle">Enter your payment information securely</div>
+            </div>
+          </div>
+          <div class="body">
+            <div class="methods" role="tablist" aria-label="Pilih metode pembayaran">
+              <button class="method active" data-method="card" type="button" role="tab" aria-selected="true" aria-controls="card-panel" id="card-tab"><i class="bi bi-credit-card"></i><span>Credit Card</span></button>
+              <button class="method" data-method="bank" type="button" role="tab" aria-selected="false" aria-controls="bank-panel" id="bank-tab"><i class="bi bi-bank"></i><span>Bank Transfer</span></button>
+              <button class="method" data-method="wallet" type="button" role="tab" aria-selected="false" aria-controls="wallet-panel" id="wallet-tab"><i class="bi bi-wallet"></i><span>E-Wallet</span></button>
+            </div>
+
+            <div id="card-panel" class="panel" role="tabpanel" aria-labelledby="card-tab">
+              <div class="field"><label class="label" for="card_number">Card Number</label><input id="card_number" class="input" placeholder="1234 5678 9012 3456" inputmode="numeric" autocomplete="cc-number" aria-describedby="card_type_disp"></div>
+              <div id="card_type_disp" class="meta"></div>
+              <div class="field"><label class="label" for="card_holder">Card Holder</label><input id="card_holder" class="input" placeholder="Name on card" autocomplete="cc-name"></div>
+              <div class="row">
+                <div class="field">
+                  <label class="label" for="exp_month">Expiry Month</label>
+                  <select id="exp_month" class="input" autocomplete="cc-exp-month">
+                    <option value="01">01</option>
+                    <option value="02">02</option>
+                    <option value="03">03</option>
+                    <option value="04">04</option>
+                    <option value="05">05</option>
+                    <option value="06">06</option>
+                    <option value="07">07</option>
+                    <option value="08">08</option>
+                    <option value="09">09</option>
+                    <option value="10">10</option>
+                    <option value="11">11</option>
+                    <option value="12">12</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label class="label" for="exp_year">Expiry Year</label>
+                  <select id="exp_year" class="input" autocomplete="cc-exp-year">
+                    <option value="25">25</option>
+                    <option value="26">26</option>
+                    <option value="27">27</option>
+                    <option value="28">28</option>
+                    <option value="29">29</option>
+                    <option value="30">30</option>
+                    <option value="31">31</option>
+                    <option value="32">32</option>
+                    <option value="33">33</option>
+                    <option value="34">34</option>
+                    <option value="35">35</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field">
+                <label class="label" for="cvv">CVV</label>
+                <div style="position:relative;">
+                  <input id="cvv" class="input" type="password" placeholder="•••" inputmode="numeric" autocomplete="cc-csc" maxlength="3">
+                  <i class="bi bi-shield-lock" aria-hidden="true" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); color:#9e9e9e;"></i>
+                </div>
+              </div>
+              <div class="note">Your payment information is encrypted and secure. We never store your full card details.</div>
+              <div style="margin-top: var(--space-5);">
+                <button id="pay_btn" class="pay-btn" type="button"><i class="bi bi-lock" aria-hidden="true"></i><span>Pay Rp {{ price_idr_str }}</span></button>
+              </div>
+            </div>
+
+            <div id="bank-panel" class="panel" role="tabpanel" aria-labelledby="bank-tab" hidden>
+              <div class="info-card"><i class="bi bi-info-circle" aria-hidden="true"></i><span id="bank_info_text">Pilih bank untuk instruksi transfer.</span></div>
+              <div class="field"><label class="label" for="bank_select">Select Bank</label><select id="bank_select" class="input" aria-required="true"><option value="">Select a bank</option><option value="BCA">BCA</option><option value="Mandiri">Mandiri</option><option value="BRI">BRI</option><option value="BNI">BNI</option><option value="CIMB Niaga">CIMB Niaga</option><option value="Permata">Permata</option><option value="Danamon">Danamon</option><option value="OCBC NISP">OCBC NISP</option><option value="Maybank">Maybank</option><option value="BTN">BTN</option><option value="BTPN">BTPN</option><option value="Citibank">Citibank</option><option value="Standard Chartered">Standard Chartered</option></select></div>
+              <div class="transfer-card">
+                <div class="transfer-row"><div class="label">Account Number</div><div class="value" id="acc_number">1234567890</div><button class="copy-btn" type="button" aria-label="Copy account number" data-copy="#acc_number"><i class="bi bi-clipboard"></i></button></div>
+                <div class="transfer-row"><div class="label">Account Name</div><div class="value" id="acc_name">PT Contoh Travel</div><button class="copy-btn" type="button" aria-label="Copy account name" data-copy="#acc_name"><i class="bi bi-clipboard"></i></button></div>
+              </div>
+              <div class="note">Setelah transfer, pembayaran akan diverifikasi otomatis dalam 10 menit.</div>
+              <div style="margin-top: var(--space-5);">
+                <button id="pay_btn_bank" class="pay-btn" type="button"><i class="bi bi-bank" aria-hidden="true"></i><span>Pay via Bank Transfer</span></button>
+              </div>
+            </div>
+            <div id="wallet-panel" class="panel" role="tabpanel" aria-labelledby="wallet-tab" hidden>
+              <div class="wallet-label">Select your e-wallet provider</div>
+              <div class="wallet-grid" role="radiogroup" aria-label="E-Wallet providers">
+                <button class="wallet-btn" type="button" role="radio" aria-checked="false" data-wallet="GoPay"><span class="dot dot-blue"></span><span>GoPay</span></button>
+                <button class="wallet-btn" type="button" role="radio" aria-checked="false" data-wallet="OVO"><span class="dot dot-purple"></span><span>OVO</span></button>
+                <button class="wallet-btn" type="button" role="radio" aria-checked="false" data-wallet="DANA"><span class="dot dot-blue"></span><span>DANA</span></button>
+                <button class="wallet-btn" type="button" role="radio" aria-checked="false" data-wallet="ShopeePay"><span class="dot dot-orange"></span><span>ShopeePay</span></button>
+              </div>
+              <div class="wallet-card" id="wallet_card" hidden>
+                <div class="wallet-title"><span class="dot dot-blue"></span><span class="wallet-title-text" id="wallet_title">E-Wallet Payment</span></div>
+                <div class="wallet-phone">
+                  <img src="{% static 'img/telephone.svg' %}" class="icon" alt="Phone number">
+                  <input id="wallet_phone" class="wallet-input" inputmode="numeric" placeholder="01128741876" aria-describedby="wallet_help" aria-invalid="false">
+                  <div id="wallet_help" class="wallet-help">Enter the phone number linked to your e-wallet account</div>
+                </div>
+                <div class="wallet-qr"><i class="bi bi-qr-code" aria-hidden="true"></i><span class="bold">Or scan QR code</span><span class="muted">QR code will appear after clicking Pay Now</span></div>
+              </div>
+              <div class="wallet-info"><i class="bi bi-shield-check" aria-hidden="true"></i><span id="wallet_info_text">Your payment is secured with e-wallet encryption. You'll receive a notification in your app to confirm the payment.</span></div>
+              <div class="wallet-sec"><i class="bi bi-shield-lock" style="color:#16a34a;" aria-hidden="true"></i><span>Your payment information is encrypted and secure. We never store your full card details.</span></div>
+              <div class="wallet-paybar"><button id="pay_btn_wallet" class="pay-btn" type="button"><i class="bi bi-lock" aria-hidden="true"></i><span>Pay Rp {{ price_idr_str }}</span></button></div>
+            </div>
+            <div class="error" id="pay-error" role="alert" aria-live="assertive"></div>
+            <div class="success" id="pay-success" role="status" aria-live="polite"></div>
+          </div>
+        </section>
+
+        <div id="success_modal" class="success-modal" aria-hidden="true">
+          <div class="backdrop" data-close="modal"></div>
+          <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="success_title" aria-describedby="success_desc">
+            <div class="dialog-header">
+              <div class="title" id="success_title"><i class="bi bi-check-circle-fill" style="color:#16a34a;" aria-hidden="true"></i><span>Payment Successful</span></div>
+              <button id="success_close" class="modal-btn" type="button" aria-label="Close">Close</button>
+            </div>
+            <div class="dialog-body" id="success_desc">
+              <div class="detail-grid">
+                <div class="detail-row"><div class="label">Amount</div><div class="value" id="success_amount"></div></div>
+                <div class="detail-row"><div class="label">Method</div><div class="value" id="success_method"></div></div>
+                <div class="detail-row"><div class="label">Transaction ID</div><div class="value" id="success_tx"></div></div>
+              </div>
+              <div class="success-actions">
+                <button id="success_receipt" class="modal-btn" type="button">View Receipt</button>
+                <button id="success_ok" class="modal-btn modal-btn-primary" type="button">Done</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="receipt_modal" class="receipt-modal" aria-hidden="true" data-url="/api/receipt">
+          <div class="backdrop" data-close="receipt"></div>
+          <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="receipt_title" aria-describedby="receipt_desc">
+            <div class="dialog-header">
+              <div class="title" id="receipt_title"><i class="bi bi-receipt" aria-hidden="true"></i><span>Payment Receipt</span></div>
+              <button id="receipt_close" class="modal-btn" type="button" aria-label="Close">Close</button>
+            </div>
+            <div class="dialog-body" id="receipt_desc">
+              <div id="receipt_error" class="receipt-error" role="alert" aria-live="assertive"></div>
+              <div id="receipt_loading" class="loading"><i class="bi bi-arrow-repeat" aria-hidden="true"></i><span>Loading receipt...</span></div>
+              <div class="receipt-grid" id="receipt_grid" hidden>
+                <div class="receipt-row"><div class="label">Transaction ID</div><div class="value" id="rc_txid"></div></div>
+                <div class="receipt-row"><div class="label">Date & Time</div><div class="value" id="rc_dt"></div></div>
+                <div class="receipt-row"><div class="label">Payment Amount</div><div class="value" id="rc_amt"></div></div>
+                <div class="receipt-row"><div class="label">Payment Method</div><div class="value" id="rc_method"></div></div>
+                <div class="receipt-row"><div class="label">Flight Details</div><div class="value" id="rc_flight"></div></div>
+                <div class="receipt-row"><div class="label">Passenger</div><div class="value" id="rc_passenger"></div></div>
+              </div>
+              <details id="receipt_debug" class="receipt-debug" hidden>
+                <summary>Technical details</summary>
+                <div id="receipt_debug_content"></div>
+              </details>
+              <div class="receipt-actions">
+                <button id="receipt_print" class="modal-btn" type="button">Print</button>
+                <button id="receipt_retry" class="modal-btn" type="button">Retry</button>
+                <button id="receipt_ok" class="modal-btn modal-btn-primary" type="button">Done</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="card summary">
+          <div class="body">
+            <div class="logo">{% if offer and offer.itineraries and offer.itineraries.0.segments and offer.itineraries.0.segments.0.carrierCode %}{{ offer.itineraries.0.segments.0.carrierCode }}{% else %}<i class="bi bi-airplane" aria-hidden="true"></i>{% endif %}</div>
+            {% if offer and offer.itineraries %}
+              {% with seg=offer.itineraries.0.segments.0 %}
+                <div style="margin-top: var(--space-4); font-weight:600;">{{ seg.departure.iataCode }} → {{ seg.arrival.iataCode }}</div>
+                <div class="meta">{{ seg.departure.at }} - {{ seg.arrival.at }}</div>
+                <div class="meta">{{ seg.carrierCode }} {{ seg.number }}</div>
+              {% endwith %}
+            {% endif %}
+            <div style="margin-top: var(--space-4);">
+              <div class="meta">Passenger</div>
+              <div>{{ name }}</div>
+              {% if email %}<div class="meta">{{ email }}</div>{% endif %}
+            </div>
+            <div style="margin-top: var(--space-4);">
+              <div class="meta">Pricing</div>
+              {% if offer and offer.price %}
+                {% with t=offer.price.total c=offer.price.currency %}
+                  {% with base=t|floatformat:2 taxes=t|floatformat:2 fee=t|floatformat:2 %}
+                    <div class="price-row"><span>Base fare</span><span>Rp {{ price_idr_str }}</span></div>
+                    <div class="price-row"><span>Taxes & fees</span><span>Rp 0</span></div>
+                    <div class="price-row"><span>Service fee</span><span>Rp 0</span></div>
+                  {% endwith %}
+                {% endwith %}
+              {% endif %}
+              <div class="price-row" style="margin-top: var(--space-2);"><span class="total">Total</span><span class="total">Rp {{ price_idr_str }}</span></div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+  <script>
+    (function(){
+      const bookingRef = '{{ booking_reference|default:"" }}';
+      function getCsrf(){
+        const m = document.cookie.match(/csrftoken=([^;]+)/); return m ? m[1] : '';
+      }
+      // Header: active state and keyboard navigation
+      const nav = document.querySelector('.nav-pill');
+      const links = nav ? Array.from(nav.querySelectorAll('.nav-link')) : [];
+      const here = window.location.pathname;
+      links.forEach(a => {
+        try {
+          const path = new URL(a.href, window.location.origin).pathname;
+          if (path && here.startsWith(path)) { a.setAttribute('aria-current','page'); }
+        } catch(_){}
+      });
+      if (nav && links.length) {
+        links.forEach((a,i) => { a.setAttribute('tabindex', i===0 ? '0' : '-1'); });
+        nav.addEventListener('keydown', (e) => {
+          const idx = links.findIndex(a => a === document.activeElement);
+          if (e.key === 'ArrowRight') { e.preventDefault(); const ni = Math.min(links.length-1, (idx<0?0:idx+1)); links.forEach(a=>a.setAttribute('tabindex','-1')); links[ni].setAttribute('tabindex','0'); links[ni].focus(); }
+          if (e.key === 'ArrowLeft') { e.preventDefault(); const pi = Math.max(0, (idx<0?0:idx-1)); links.forEach(a=>a.setAttribute('tabindex','-1')); links[pi].setAttribute('tabindex','0'); links[pi].focus(); }
+        });
+      }
+
+      const tabs = Array.from(document.querySelectorAll('.methods .method'));
+      const panels = { card: document.getElementById('card-panel'), bank: document.getElementById('bank-panel'), wallet: document.getElementById('wallet-panel') };
+      function activate(method){
+        tabs.forEach(t => {
+          const sel = t.getAttribute('data-method') === method;
+          t.classList.toggle('active', sel);
+          t.setAttribute('aria-selected', sel ? 'true' : 'false');
+          t.setAttribute('tabindex', sel ? '0' : '-1');
+        });
+        Object.keys(panels).forEach(k => {
+          const p = panels[k];
+          if(p){ if(k === method){ p.removeAttribute('hidden'); } else { p.setAttribute('hidden',''); } }
+        });
+      }
+      tabs.forEach(t => {
+        t.addEventListener('click', () => {
+          const m = t.getAttribute('data-method');
+          activate(m);
+          const p = panels[m];
+          if(p){ const f = p.querySelector('input,select,button'); if(f) f.focus(); }
+        });
+      });
+      const tablist = document.querySelector('.methods');
+      if(tablist){
+        tablist.addEventListener('keydown', (e) => {
+          const i = tabs.findIndex(t => t.classList.contains('active'));
+          if(e.key === 'ArrowRight'){ e.preventDefault(); const ni = Math.min(tabs.length-1, (i<0?0:i+1)); tabs[ni].click(); }
+          if(e.key === 'ArrowLeft'){ e.preventDefault(); const pi = Math.max(0, (i<0?0:i-1)); tabs[pi].click(); }
+          if(e.key === 'Home'){ e.preventDefault(); tabs[0].click(); }
+          if(e.key === 'End'){ e.preventDefault(); tabs[tabs.length-1].click(); }
+          if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); tabs[i>=0?i:0].click(); }
+        });
+      }
+      activate('card');
+      function luhn(num){
+        const s = (num||'').replace(/\D/g,'');
+        if(!s) return false;
+        let sum=0, alt=false;
+        for(let i=s.length-1;i>=0;i--){
+          let n=parseInt(s.charAt(i),10);
+          if(alt){ n*=2; if(n>9) n-=9; }
+          sum+=n; alt=!alt;
+        }
+        return sum%10===0;
+      }
+      const payBtn = document.getElementById('pay_btn');
+      const err = document.getElementById('pay-error');
+      const ok = document.getElementById('pay-success');
+      const typeDisp = document.getElementById('card_type_disp');
+      const copyBtns = Array.from(document.querySelectorAll('.copy-btn'));
+      copyBtns.forEach(b => b.addEventListener('click', () => {
+        const sel = b.getAttribute('data-copy');
+        const el = document.querySelector(sel);
+        const txt = el ? el.textContent.trim() : '';
+        if(!txt) return;
+        navigator.clipboard.writeText(txt).then(() => { b.classList.add('copied'); setTimeout(() => b.classList.remove('copied'), 1200); });
+      }));
+      function detectType(s){ if(/^4/.test(s)) return 'Visa'; if(/^(5[1-5]|2(2[2-9]|[3-6]\d|7[01]|720))/.test(s)) return 'Mastercard'; return ''; }
+      const cnInput = document.getElementById('card_number');
+      if(cnInput){
+        cnInput.addEventListener('input', () => {
+          const digits = cnInput.value.replace(/\D/g,'').slice(0,16);
+          cnInput.value = digits.replace(/(\d{4})(?=\d)/g, '$1 ');
+          const t = detectType(digits);
+          if(typeDisp) typeDisp.textContent = t ? t : '';
+        });
+      }
+      let selectedWallet = '';
+      const bankSelect = document.getElementById('bank_select');
+      const bankInfoText = document.getElementById('bank_info_text');
+      const accNumberEl = document.getElementById('acc_number');
+      const accNameEl = document.getElementById('acc_name');
+      const BANKS = {
+        'BCA': { acc: '1234567890', name: 'PT Contoh Travel' },
+        'Mandiri': { acc: '700123456789', name: 'PT Contoh Travel' },
+        'BRI': { acc: '002345678901', name: 'PT Contoh Travel' },
+        'BNI': { acc: '014567890123', name: 'PT Contoh Travel' },
+        'CIMB Niaga': { acc: '022678901234', name: 'PT Contoh Travel' },
+        'Permata': { acc: '013789012345', name: 'PT Contoh Travel' },
+        'Danamon': { acc: '011890123456', name: 'PT Contoh Travel' },
+        'OCBC NISP': { acc: '028901234567', name: 'PT Contoh Travel' },
+        'Maybank': { acc: '016012345678', name: 'PT Contoh Travel' },
+        'BTN': { acc: '200123456789', name: 'PT Contoh Travel' },
+        'BTPN': { acc: '213456789012', name: 'PT Contoh Travel' },
+        'Citibank': { acc: '031234567890', name: 'PT Contoh Travel' },
+        'Standard Chartered': { acc: '052345678901', name: 'PT Contoh Travel' }
+      };
+      function updateBankSelection(){
+        if(!bankSelect) return;
+        const val = bankSelect.value;
+        bankSelect.setAttribute('aria-invalid','false');
+        if(!val){
+          if(accNumberEl) accNumberEl.textContent = '';
+          if(accNameEl) accNameEl.textContent = '';
+          if(bankInfoText) bankInfoText.textContent = 'Pilih bank untuk instruksi transfer.';
+          return;
+        }
+        const cfg = BANKS[val];
+        if(cfg){
+          if(accNumberEl) accNumberEl.textContent = cfg.acc;
+          if(accNameEl) accNameEl.textContent = cfg.name;
+          if(bankInfoText) bankInfoText.textContent = 'Transfer melalui ' + val + ' sesuai instruksi di bawah.';
+        }
+      }
+      if(bankSelect){ bankSelect.addEventListener('change', updateBankSelection); }
+      const walletBtns = Array.from(document.querySelectorAll('.wallet-btn'));
+      walletBtns.forEach(b => b.addEventListener('click', () => {
+        walletBtns.forEach(x => x.setAttribute('aria-checked','false'));
+        b.setAttribute('aria-checked','true');
+        selectedWallet = b.getAttribute('data-wallet') || '';
+        const card = document.getElementById('wallet_card');
+        const title = document.getElementById('wallet_title');
+        const help = document.getElementById('wallet_help');
+        const infoText = document.getElementById('wallet_info_text');
+        if(card){ card.removeAttribute('hidden'); card.style.opacity = '1'; card.style.transform = 'translateY(0)'; }
+        if(title){ title.textContent = selectedWallet + ' Payment'; title.style.color = '#2563eb'; }
+        if(help){ help.textContent = 'Enter the phone number linked to your ' + selectedWallet + ' account'; }
+        if(infoText){ infoText.textContent = "Your payment is secured with " + selectedWallet + "'s encryption. You'll receive a notification in your app to confirm the payment."; }
+        updatePayLabels();
+      }));
+      async function confirmPayment(methodLabel){
+        if(!bookingRef) return false;
+        try{
+          const tx = genTx();
+          const body = new URLSearchParams({ booking_reference: bookingRef, status: 'paid', method: methodLabel, txid: tx }).toString();
+          const r = await fetch('{% url "confirm_payment" %}', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': getCsrf() }, body, credentials: 'include' });
+          if(!r.ok) return false;
+          const j = await r.json().catch(function(){ return {}; });
+          return !!(j && j.ok && j.status === 'confirmed');
+        }catch(_){ return false; }
+      }
+      payBtn.addEventListener('click', async () => {
+        err.textContent=''; ok.textContent='';
+        const cn = document.getElementById('card_number');
+        const ch = document.getElementById('card_holder');
+        const mm = document.getElementById('exp_month');
+        const yy = document.getElementById('exp_year');
+        const cvv = document.getElementById('cvv');
+        const v = [];
+        [cn,ch,mm,yy,cvv].forEach(el => { if(el) el.setAttribute('aria-invalid','false'); });
+        if(!luhn(cn.value)) { v.push('Nomor kartu tidak valid'); cn.setAttribute('aria-invalid','true'); }
+        if(!ch.value.trim()) v.push('Nama pemegang kartu wajib diisi');
+        if(!mm.value || !yy.value) v.push('Expiry wajib diisi');
+        if(!cvv.value || cvv.value.replace(/\D/g,'').length < 3) { v.push('CVV tidak valid'); cvv.setAttribute('aria-invalid','true'); }
+        if(v.length){ err.textContent = v[0]; return; }
+        payBtn.setAttribute('disabled','true');
+        payBtn.innerHTML = '<span>Mengproses...</span>';
+        try{
+          await new Promise(r => setTimeout(r, 1200));
+          ok.textContent = 'Pembayaran berhasil.';
+          const confirmed = await confirmPayment('Credit Card');
+          if(!confirmed){ err.textContent = 'Konfirmasi pembayaran gagal.'; return; }
+          showSuccessModal('Credit Card');
+          setTimeout(function(){ window.location.href = '{% url "my_bookings" %}?confirmed=1&ref=' + encodeURIComponent(bookingRef); }, 800);
+        }catch(e){ err.textContent = 'Pembayaran gagal.'; }
+        payBtn.removeAttribute('disabled');
+        payBtn.innerHTML = '<i class="bi bi-lock" aria-hidden="true"></i><span>Pay Rp {{ price_idr_str }}</span>';
+      });
+      const payBtnBank = document.getElementById('pay_btn_bank');
+      if(payBtnBank){
+        payBtnBank.addEventListener('click', async () => {
+          err.textContent=''; ok.textContent='';
+          if(bankSelect){ bankSelect.setAttribute('aria-invalid','false'); }
+          const selectedBank = bankSelect ? (bankSelect.value || '') : '';
+          if(!selectedBank){ err.textContent = 'Silakan pilih bank terlebih dahulu'; if(bankSelect) bankSelect.setAttribute('aria-invalid','true'); return; }
+          payBtnBank.setAttribute('disabled','true');
+          payBtnBank.innerHTML = '<span>Memproses...</span>';
+          try{ await new Promise(r => setTimeout(r, 1000)); ok.textContent = 'Instruksi transfer dikirim.'; }
+          catch(e){ err.textContent = 'Gagal memproses.'; }
+          payBtnBank.removeAttribute('disabled');
+          payBtnBank.innerHTML = '<i class="bi bi-bank" aria-hidden="true"></i><span>Pay via Bank Transfer</span>';
+          if(!err.textContent){
+            try{
+              const data = { event: 'bank_transfer_initiated', bank: selectedBank, amount: getTotalText(), ts: Date.now() };
+              if(navigator.sendBeacon){ navigator.sendBeacon('/analytics/bank-transfer', new Blob([JSON.stringify(data)], { type: 'application/json' })); }
+            }catch(_){ }
+            const confirmed = await confirmPayment('Bank Transfer - ' + selectedBank);
+            if(!confirmed){ err.textContent = 'Konfirmasi pembayaran gagal.'; return; }
+            showSuccessModal('Bank Transfer - ' + selectedBank);
+            setTimeout(function(){ window.location.href = '{% url "my_bookings" %}?confirmed=1&ref=' + encodeURIComponent(bookingRef); }, 800);
+          }
+        });
+      }
+      const payBtnWallet = document.getElementById('pay_btn_wallet');
+      if(payBtnWallet){
+        payBtnWallet.addEventListener('click', async () => {
+          err.textContent=''; ok.textContent='';
+          if(!selectedWallet){ err.textContent = 'Silakan pilih e-wallet terlebih dahulu'; return; }
+          const phone = document.getElementById('wallet_phone');
+          if(phone){ phone.setAttribute('aria-invalid','false'); }
+          const digits = phone ? (phone.value||'').replace(/\D/g,'') : '';
+          if(!digits || digits.length < 10 || digits.length > 15){ err.textContent = 'Nomor ponsel tidak valid'; if(phone) phone.setAttribute('aria-invalid','true'); return; }
+          payBtnWallet.setAttribute('disabled','true');
+          payBtnWallet.innerHTML = '<span>Memproses...</span>';
+          try{ await new Promise(r => setTimeout(r, 1000)); ok.textContent = 'Pembayaran e-wallet berhasil.'; }
+          catch(e){ err.textContent = 'Gagal memproses.'; }
+          payBtnWallet.removeAttribute('disabled');
+          payBtnWallet.innerHTML = '<i class="bi bi-lock" aria-hidden="true"></i><span>Pay Rp {{ price_idr_str }}</span>';
+          if(!err.textContent){
+            const confirmed = await confirmPayment('E-Wallet - ' + (selectedWallet || 'E-Wallet'));
+            if(!confirmed){ err.textContent = 'Konfirmasi pembayaran gagal.'; return; }
+            showSuccessModal(selectedWallet || 'E-Wallet');
+            setTimeout(function(){ window.location.href = '{% url "my_bookings" %}?confirmed=1&ref=' + encodeURIComponent(bookingRef); }, 800);
+          }
+        });
+      }
+      function getTotalText(){
+        const totals = Array.from(document.querySelectorAll('.summary .price-row .total'));
+        const last = totals[totals.length - 1];
+        return last ? last.textContent.trim() : ('Rp ' + ('{{ price_idr_str }}' || '').trim());
+      }
+      function updatePayLabels(){
+        const amt = getTotalText();
+        const label = 'Pay ' + amt;
+        [document.getElementById('pay_btn'), document.getElementById('pay_btn_bank'), document.getElementById('pay_btn_wallet')].forEach(b => {
+          if(b) b.innerHTML = '<i class="bi bi-lock" aria-hidden="true"></i><span>' + label + '</span>';
+        });
+      }
+      updatePayLabels();
+
+      const sm = document.getElementById('success_modal');
+      const smAmt = document.getElementById('success_amount');
+      const smMethod = document.getElementById('success_method');
+      const smTx = document.getElementById('success_tx');
+      const smClose = document.getElementById('success_close');
+      const smDone = document.getElementById('success_ok');
+      const smReceipt = document.getElementById('success_receipt');
+      let smTimer = null;
+      function genTx(){ return 'TX-' + Date.now().toString(36).toUpperCase() + '-' + Math.floor(Math.random()*1e6).toString().padStart(6,'0'); }
+      function showSuccessModal(method){
+        const amt = getTotalText();
+        smAmt.textContent = amt;
+        smMethod.textContent = method;
+        const tx = genTx();
+        smTx.textContent = tx;
+        sm.classList.add('show');
+        sm.setAttribute('aria-hidden','false');
+        smClose.focus();
+        try{
+          const data = { event: 'payment_success_modal', method: method, amount: amt, txid: tx, ts: Date.now() };
+          if(navigator.sendBeacon){ navigator.sendBeacon('/analytics/payment-popup', new Blob([JSON.stringify(data)], { type: 'application/json' })); }
+          else { fetch('/analytics/payment-popup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data), keepalive: true }).catch(function(){}); }
+        }catch(e){}
+        clearTimeout(smTimer);
+        smTimer = setTimeout(hideSuccessModal, 5000);
+      }
+      function hideSuccessModal(){ sm.classList.remove('show'); sm.setAttribute('aria-hidden','true'); clearTimeout(smTimer); smTimer = null; }
+      if(sm){
+        sm.addEventListener('click', function(e){ if(e.target && e.target.getAttribute('data-close')==='modal') hideSuccessModal(); });
+        smClose.addEventListener('click', hideSuccessModal);
+        smDone.addEventListener('click', hideSuccessModal);
+        smReceipt.addEventListener('click', function(){ const tx = smTx ? smTx.textContent.trim() : ''; showReceiptModal(tx); });
+        document.addEventListener('keydown', function(e){ if(sm.classList.contains('show') && e.key==='Escape'){ hideSuccessModal(); } });
+      }
+
+      const rm = document.getElementById('receipt_modal');
+      const rmErr = document.getElementById('receipt_error');
+      const rmLoad = document.getElementById('receipt_loading');
+      const rmGrid = document.getElementById('receipt_grid');
+      const rcTx = document.getElementById('rc_txid');
+      const rcDt = document.getElementById('rc_dt');
+      const rcAmt = document.getElementById('rc_amt');
+      const rcMethod = document.getElementById('rc_method');
+      const rcFlight = document.getElementById('rc_flight');
+      const rcPassenger = document.getElementById('rc_passenger');
+      const rmClose = document.getElementById('receipt_close');
+      const rmOk = document.getElementById('receipt_ok');
+      const rmPrint = document.getElementById('receipt_print');
+      function openReceipt(){ rm.classList.add('show'); rm.setAttribute('aria-hidden','false'); rmClose.focus(); }
+      function closeReceipt(){ rm.classList.remove('show'); rm.setAttribute('aria-hidden','true'); }
+      function fillReceipt(data){
+        rcTx.textContent = data.txid || '';
+        rcDt.textContent = data.datetime || '';
+        rcAmt.textContent = data.amount || '';
+        rcMethod.textContent = data.method || '';
+        rcFlight.textContent = data.flight || '';
+        rcPassenger.textContent = data.passenger || '';
+      }
+      async function fetchReceipt(tx, attemptLog){
+        const base = rm.getAttribute('data-url') || '/api/receipt';
+        const candidates = [base, '/receipt', '/payments/receipt'];
+        for(const ep of candidates){
+          try{
+            const url = ep + (ep.includes('?') ? '&' : '?') + 'txid=' + encodeURIComponent(tx || '');
+            const c = new AbortController();
+            const t = setTimeout(function(){ c.abort(); }, 8000);
+            const r = await fetch(url, { credentials: 'include', headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, signal: c.signal });
+            clearTimeout(t);
+            if(!r.ok){ attemptLog.push({ endpoint: url, status: r.status, ok: false }); continue; }
+            const ct = r.headers.get('content-type') || '';
+            if(ct.includes('application/json')){ return await r.json(); }
+            const txt = await r.text();
+            try{ return JSON.parse(txt); }catch(_){ continue; }
+          }catch(e){ attemptLog.push({ endpoint: ep, error: String(e && e.message || e) }); continue; }
+        }
+        throw new Error('unavailable');
+      }
+      function extractPassengerFromDom(){
+        try{
+          const body = document.querySelector('.summary .body');
+          if(!body) return '';
+          const metas = Array.from(body.querySelectorAll('.meta'));
+          let nameText = '';
+          let emailText = '';
+          const passengerIdx = metas.findIndex(m => (m.textContent||'').trim().toLowerCase() === 'passenger');
+          if(passengerIdx >= 0){
+            const nameEl = metas[passengerIdx].nextElementSibling || metas[passengerIdx + 1];
+            if(nameEl){ nameText = (nameEl.textContent||'').trim(); }
+            const emailEl = metas.slice(passengerIdx+1).find(m => /@/.test((m.textContent||'')));
+            if(emailEl){ emailText = (emailEl.textContent||'').trim(); }
+          } else {
+            // fallback: find any non-meta div likely containing name between sections
+            const blocks = Array.from(body.querySelectorAll('div'));
+            const nameCand = blocks.find(el => el.classList && !el.classList.contains('meta') && (el.textContent||'').trim() && !/(Base fare|Taxes|Service fee|Total|CGK|KUL|Passenger|Pricing)/i.test(el.textContent));
+            if(nameCand){ nameText = (nameCand.textContent||'').trim(); }
+            const emailCand = metas.find(m => /@/.test((m.textContent||'')));
+            if(emailCand){ emailText = (emailCand.textContent||'').trim(); }
+          }
+          return [nameText, emailText].filter(Boolean).join(' | ');
+        }catch(_){ return ''; }
+      }
+      function sanitizeReceipt(j){
+        const txid = (j && j.txid) ? String(j.txid) : (smTx ? smTx.textContent.trim() : genTx());
+        const txOk = /^TX-[A-Z0-9]+-\d{6}$/.test(txid);
+        const datetime = (j && j.datetime) ? String(j.datetime) : new Date().toLocaleString();
+        let dtOut = datetime;
+        try{ const d = new Date(datetime); if(!isNaN(d.valueOf())) dtOut = d.toLocaleString(); }catch(_){ dtOut = new Date().toLocaleString(); }
+        const amount = (j && j.amount) ? String(j.amount) : getTotalText();
+        const method = (j && j.method) ? String(j.method) : (smMethod ? smMethod.textContent : '');
+        let flight = (j && j.flight) ? String(j.flight) : '';
+        if(!flight){
+          const route = document.querySelector('.summary .body div[style*="font-weight:600"]');
+          const meta = document.querySelectorAll('.summary .meta');
+          const dt = meta && meta[0] ? meta[0].textContent : '';
+          flight = [route ? route.textContent : '', dt].filter(Boolean).join(' | ');
+        }
+        if(j && j.route && j.departure && j.arrival){ flight = j.route + ' | ' + j.departure + ' - ' + j.arrival; }
+        let passenger = '';
+        if(j){
+          if(j.passenger) passenger = String(j.passenger);
+          else if(Array.isArray(j.passengers)) passenger = j.passengers.map(p => [p.name||p.fullName||p.title||'', p.email||''].filter(Boolean).join(' ')).join(' | ');
+          else if(j.customer) passenger = [j.customer.name||'', j.customer.email||''].filter(Boolean).join(' | ');
+          else if(j.passenger_name) passenger = String(j.passenger_name);
+        }
+        if(!passenger){ passenger = extractPassengerFromDom(); }
+        if(!passenger){ passenger = 'Passenger data unavailable'; }
+        try{
+          const data = { event: 'receipt_passenger_extracted', source: j && (j.passenger||j.passengers||j.customer||j.passenger_name) ? 'server' : 'dom', value: passenger, ts: Date.now() };
+          if(navigator.sendBeacon){ navigator.sendBeacon('/analytics/receipt-passenger', new Blob([JSON.stringify(data)], { type: 'application/json' })); }
+        }catch(_){ }
+        return { txid: txOk ? txid : (smTx ? smTx.textContent.trim() : genTx()), datetime: dtOut, amount, method, flight, passenger };
+      }
+      async function showReceiptModal(tx){
+        rmErr.textContent = '';
+        rmLoad.style.display = 'inline-flex';
+        rmGrid.setAttribute('hidden','');
+        openReceipt();
+        try{
+          const attempts = [];
+          const j = await fetchReceipt(tx, attempts);
+          const clean = sanitizeReceipt(j);
+          fillReceipt(clean);
+          rmLoad.style.display = 'none';
+          rmGrid.removeAttribute('hidden');
+        }catch(e){
+          const clean = sanitizeReceipt({ txid: tx });
+          fillReceipt(clean);
+          rmLoad.style.display = 'none';
+          rmGrid.removeAttribute('hidden');
+          try{
+            const debug = document.getElementById('receipt_debug');
+            const content = document.getElementById('receipt_debug_content');
+            if(debug && content){
+              const msg = 'Receipt request failed. Attempts:\n' + (attempts && attempts.length ? attempts.map(function(a){ return '- ' + (a.endpoint || '') + ' ' + (a.status !== undefined ? ('status=' + a.status) : '') + (a.error ? (' error=' + a.error) : ''); }).join('\n') : '- none');
+              content.innerHTML = '<pre>' + msg.replace(/[<>&]/g, function(s){ return ({"<":"&lt;","&":"&amp;",">":"&gt;"})[s]; }) + '</pre>';
+              debug.removeAttribute('hidden');
+            }
+            const data = { event: 'receipt_load_failed', txid: tx || '', attempts: attempts, ts: Date.now() };
+            if(navigator.sendBeacon){ navigator.sendBeacon('/analytics/receipt-error', new Blob([JSON.stringify(data)], { type: 'application/json' })); }
+          }catch(_){ }
+          rmErr.textContent = '';
+        }
+      }
+      const rmRetry = document.getElementById('receipt_retry');
+      if(rmRetry){ rmRetry.addEventListener('click', function(){ const tx = rcTx ? rcTx.textContent.trim() : (smTx ? smTx.textContent.trim() : ''); showReceiptModal(tx); }); }
+      if(rm){
+        rm.addEventListener('click', function(e){ if(e.target && e.target.getAttribute('data-close')==='receipt') closeReceipt(); });
+        rmClose.addEventListener('click', closeReceipt);
+        rmOk.addEventListener('click', closeReceipt);
+        rmPrint.addEventListener('click', function(){ window.print(); });
+        document.addEventListener('keydown', function(e){ if(rm.classList.contains('show') && e.key==='Escape'){ closeReceipt(); } });
+      }
+      (function(){
+        const sample = {
+          txid: 'TX-TEST', datetime: new Date().toLocaleString(), amount: getTotalText(), method: 'Test', flight: 'TEST', passenger: 'TEST'
+        };
+        fillReceipt(sample);
+      })();
+    })();
+  </script>
+</body>
+</html>
